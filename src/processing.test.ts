@@ -9,7 +9,7 @@ const cpu: Hello['capabilities'] = {
 
 describe('processor guidance', () => {
   it('explains that Automatic cannot use CUDA with the CPU runtime', () => {
-    expect(processingStatus(cpu).detail).toContain('separate NVIDIA runtime pack');
+    expect(processingStatus(cpu).detail).toContain('Run setup again');
   });
   it('distinguishes a missing pack from a CUDA driver or hardware problem', () => {
     const status = processingStatus({ ...cpu, gpu_status: 'cuda_unavailable', cuda_runtime: '12.8' });

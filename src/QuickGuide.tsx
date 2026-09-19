@@ -47,18 +47,16 @@ export function QuickGuide({ page, onPage, onClose, capabilities, device }: {
       <div className="guide-status" role="status"><strong>{status.label}</strong><p>{status.detail}</p></div>
       <button className="primary guide-download" onClick={() => void openRelease()}>Open v{version} downloads <ArrowUpRight size={15} /></button>
       {linkError && <p role="alert">{linkError}</p>}
-      <p>The standard Windows installer includes the CPU runtime. GPU acceleration requires an <strong>NVIDIA GPU</strong>, a compatible driver, and the separate runtime pack. AMD and Intel GPU acceleration is not supported yet.</p>
+      <p>One Windows setup installs erase-it and offers optional NVIDIA support. GPU acceleration requires an <strong>NVIDIA GPU</strong> and a compatible driver. AMD and Intel GPU acceleration is not supported yet.</p>
       <ol className="guide-steps">
-        <li><strong>Download the pack for v{version}.</strong> Open this version’s release and download <code>erase-it-nvidia-{version}-windows-x64.zip</code>, its <code>.zip.sha256</code> file, and <code>install-nvidia.ps1</code> into the same folder. If the ZIP is split, download every numbered part and the checksum file. Packs may finish building after the app installer appears.</li>
-        <li><strong>Close erase-it.</strong> In the download folder, right-click an empty area and choose Open in Terminal. Run the PowerShell command below; installation verifies the files first.</li>
-      </ol>
-      <pre className="guide-command"><code>{`powershell -ExecutionPolicy Bypass -File .\\install-nvidia.ps1 -Archive .\\erase-it-nvidia-${version}-windows-x64.zip`}</code></pre>
-      <ol className="guide-steps" start={3}>
+        <li><strong>Run setup for v{version}.</strong> Download <code>erase-it-{version}-windows-x64-setup.exe</code> from this version’s release. Close erase-it and run that EXE, even if the app is already installed.</li>
+        <li><strong>Choose Yes for NVIDIA GPU acceleration.</strong> Setup downloads and verifies the matching runtime automatically. Allow about 3.2 GB of internet data and 12 GB of free space during setup (5 GB afterwards). If a download fails, choose Retry; verified downloads are reused.</li>
         <li><strong>Restart and choose Automatic.</strong> Import or reopen your project. Processing should show your GPU’s name. Choose Automatic or NVIDIA GPU, then select or track a subject.</li>
         <li><strong>If it still shows CPU:</strong> check the status above. If the NVIDIA runtime is installed but no GPU is detected, update the NVIDIA driver for your card, restart Windows, and try again. Run <code>nvidia-smi</code> in a terminal to check whether the driver sees your card.</li>
       </ol>
       <p>GPU processing speeds up <strong>selection and tracking</strong>. Import, video decoding, and export still use the CPU, so CPU activity during those steps is expected. The tracking progress shows the device actually in use.</p>
-      <p>Install the matching pack again after updating erase-it. If a pack prevents startup, close the app and remove only <code>%APPDATA%\\io.github.amreetkumarkhuntia.eraseit\\runtimes\\nvidia</code> to return to the bundled CPU runtime.</p>
+      <p>Choose NVIDIA support again when installing an app update. Setup includes Python, PyTorch with CUDA, and SAM 2; your NVIDIA graphics driver is installed separately. Download the Tiny model in Processing on first use.</p>
+      <p>If a runtime prevents startup, close the app and remove only <code>%APPDATA%\\io.github.amreetkumarkhuntia.eraseit\\runtimes\\nvidia</code> to return to the bundled CPU runtime.</p>
       {capabilities?.runtime_error && <details><summary>Runtime error details</summary><pre className="guide-command">{capabilities.runtime_error}</pre></details>}
     </>}
   </dialog>;

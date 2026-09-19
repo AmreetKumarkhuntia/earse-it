@@ -14,7 +14,8 @@ test('browser preview explains local processing and exposes help', async ({ page
   await page.keyboard.press('2');
   await expect(page.getByRole('button', { name: 'Keep 1' })).toHaveClass(/active/);
   await page.getByRole('button', { name: 'GPU setup', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('standard Windows installer includes the CPU runtime');
+  await expect(page.getByRole('dialog')).toContainText('One Windows setup installs erase-it');
+  await expect(page.getByRole('dialog')).toContainText('Choose Yes for NVIDIA GPU acceleration');
   await expect(page.getByRole('dialog')).toContainText('Import, video decoding, and export still use the CPU');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);

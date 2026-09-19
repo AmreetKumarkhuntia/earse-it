@@ -29,6 +29,6 @@ export function prepare(_config, { cwd, nextRelease }) {
 }
 
 export function success(_config, { nextRelease, env }) {
-  // Only schedule the optional runtime after the matching app release is published.
+  // Expose only the version that was successfully published.
   if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `version=${nextRelease.version}\n`);
 }

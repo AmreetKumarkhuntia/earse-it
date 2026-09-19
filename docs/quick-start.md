@@ -24,9 +24,10 @@ and keep your source video in its original location.
 
 ## Why Windows is using the CPU
 
-The standard installer bundles **CPU PyTorch**. Choosing Automatic or setting
-Windows’ graphics preference cannot add CUDA to that runtime. NVIDIA processing
-requires the separate **NVIDIA runtime pack** and a compatible NVIDIA driver.
+Setup always installs **CPU PyTorch** and offers **NVIDIA GPU acceleration**.
+If you skipped that option, rerun the same setup EXE and choose Yes. Choosing
+Automatic or changing Windows’ graphics preference alone cannot enable CUDA.
+NVIDIA processing also requires a compatible NVIDIA graphics driver.
 AMD and Intel GPU acceleration is not supported in this version.
 
 GPU processing accelerates **selection and tracking**. Import, video decoding,
@@ -34,38 +35,47 @@ and export still use the CPU. CPU activity during those steps is expected.
 
 ## Install NVIDIA support
 
-1. Check your app version in the bottom-right corner. Open that exact version on
-   [GitHub Releases](https://github.com/AmreetKumarkhuntia/earse-it/releases).
-2. Download `erase-it-nvidia-VERSION-windows-x64.zip`, its `.zip.sha256` file,
-   and `install-nvidia.ps1` into the same folder. If the ZIP is split into
-   `.zip.001`, `.zip.002`, etc., download **every part** and the `.zip.sha256` file.
-   The script joins them automatically. Allow space for both the joined ZIP and
-   extracted runtime. The pack builds after the installer is published; check
-   the release workflow if its downloads have not appeared yet.
-3. Close erase-it. Open PowerShell in that download folder and run, replacing
-   `VERSION` with your installed app version:
+1. Download the `erase-it-VERSION-windows-x64-setup.exe` from
+   [GitHub Releases](https://github.com/AmreetKumarkhuntia/earse-it/releases/latest).
+   This one EXE installs the app and its optional GPU support. You do not need
+   to download ZIP parts or run commands yourself.
+2. Close erase-it and run setup. Choose **Yes** when asked to install NVIDIA GPU
+   acceleration. Setup downloads about **3.2 GB** and verifies the files before
+   installing them. Allow about **12 GB free** during setup (**5 GB** afterwards).
+   Keep an internet connection available. If downloading fails, choose **Retry**;
+   setup reuses verified downloads and resumes interrupted ones where possible.
+   Cancel finishes with CPU processing; rerun the EXE to try again later.
+3. Open erase-it and download the Tiny model in Processing if prompted. Import or
+   reopen your video and choose **Automatic** or **NVIDIA GPU** under Processor.
+   The panel should show your GPU name. Selection and tracking progress also
+   show the device actually being used.
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\install-nvidia.ps1 -Archive .\erase-it-nvidia-VERSION-windows-x64.zip
-   ```
+Choose NVIDIA support again when installing an app update. A runtime from another
+version is ignored so the app can use its bundled CPU runtime.
 
-4. Restart erase-it, import or reopen your video, and choose **Automatic** or
-   **NVIDIA GPU** under Processor. The panel should show your GPU name. Selection
-   and tracking progress also show the device actually being used.
+### What NVIDIA support contains
 
-The pack includes the CUDA runtime; you do not need to install Python, PyTorch,
-or the CUDA development toolkit yourself. Install the matching pack again after
-updating the app. A pack from another version is ignored so the app can use its
-bundled CPU runtime.
+| Component | Purpose |
+| --- | --- |
+| Private Python 3.12 and erase-it worker | Runs processing without a separate Python installation. |
+| PyTorch 2.7.1 + CUDA 12.8 and TorchVision 0.22.1 | GPU inference runtime. |
+| SAM 2 and its Python dependencies | Subject selection and tracking. |
+| CUDA, cuDNN, cuBLAS, and other PyTorch runtime DLLs | GPU computation libraries; these account for most of the download size. |
+| Dependency inventory and license notices | Records the bundled software. Also included in the release's notices ZIP. |
+
+The NVIDIA package does **not** install an NVIDIA graphics driver or the CUDA
+compiler/development toolkit. Install or update the driver for your card
+separately. Model weights are also separate: download Tiny (156 MB) or optional
+Base+ (324 MB) in the app. FFmpeg is included with the app's CPU installation.
 
 ## If GPU processing is still unavailable
 
 | Processing status | What to do |
 | --- | --- |
-| CPU runtime is installed | Install the NVIDIA pack for your exact app version, then restart the app. |
+| CPU runtime is installed | Rerun setup for your app version and choose NVIDIA GPU acceleration, then restart the app. |
 | CUDA runtime installed, no usable NVIDIA GPU | Confirm that your PC has an NVIDIA card and update its NVIDIA driver. Restart Windows. Run `nvidia-smi` in a terminal to check that the driver sees it. |
 | CPU selected, GPU available | Change Processor to Automatic or NVIDIA GPU for that project. |
-| Processing runtime unavailable | Reinstall the app or matching pack. The guide includes runtime error details when available. |
+| Processing runtime unavailable | Rerun setup and choose NVIDIA support again. The guide includes runtime error details when available. |
 | GPU runs out of memory | Try the Tiny model or switch Processor to CPU and retry. |
 
 If the app cannot start with a pack installed, close it and remove only
@@ -74,3 +84,6 @@ the bundled CPU runtime. Your models and projects remain in place.
 
 For troubleshooting, include your app version, GPU model, NVIDIA driver version,
 and the exact message under Processing.
+
+If setup fails, its detailed log is at
+`%APPDATA%\io.github.amreetkumarkhuntia.eraseit\nvidia-setup.log`.

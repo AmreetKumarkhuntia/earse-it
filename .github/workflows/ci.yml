@@ -36,6 +36,10 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if [[ -n "$COMMIT_FROM" && ! "$COMMIT_FROM" =~ ^0+$ ]]; then
+            # A force-push can remove the previous HEAD from the normal checkout.
+            if ! git cat-file -e "$COMMIT_FROM^{commit}" 2>/dev/null; then
+              git fetch --no-tags origin "$COMMIT_FROM"
+            fi
             npx --no -- commitlint --from "$COMMIT_FROM" --to "$COMMIT_TO" --verbose
           else
             git log -1 --format=%B "$COMMIT_TO" | npx --no -- commitlint --verbose
@@ -63,11 +67,3 @@ jobs:
     uses: ./.github/workflows/windows.yml
     with:
       release: true
-  nvidia:
-    needs: release
-    if: needs.release.outputs.version != ''
-    permissions:
-      contents: write
-    uses: ./.github/workflows/nvidia.yml
-    with:
-      tag: v${{ needs.release.outputs.version }}

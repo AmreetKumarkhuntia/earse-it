@@ -56,6 +56,6 @@ commits run build/test CI without publishing. Add `[skip release]` to defer
 publishing for a particular push.
 
 Generated release commits use `docs(release): VERSION [skip ci]`, which follows
-the same message rules and prevents a release loop. The optional NVIDIA pack is
-attached after the app installer is published. Pull the generated release commit
+the same message rules and prevents a release loop. The installer and optional NVIDIA runtime are
+built and tested together; all files are uploaded before the release is published. Pull the generated release commit
 before your next push.

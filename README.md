@@ -44,25 +44,28 @@ On first use, download the 156 MB Tiny model in **Processing**. Base+ is an opti
 models need no network access. CPU operation is always available; runtime and driver
 compatibility determine GPU availability. AMD/Intel GPU acceleration is deferred.
 
-Each new release also builds a separate NVIDIA CUDA runtime pack and attaches it
-to that release. Download its ZIP, matching `.zip.sha256`, and `install-nvidia.ps1`
-from the same version. Large ZIPs are split into numbered parts; download every
-part and the checksum file, and the installer script will join them automatically. Close the app, then run in PowerShell:
+**One setup EXE handles both CPU and NVIDIA installation.** When asked whether to
+install NVIDIA GPU acceleration, choose **Yes**. Setup downloads the matching
+runtime (about 3.2 GB), verifies it, and installs it automatically. Allow about
+12 GB of free space during installation and 5 GB afterwards. The numbered GPU
+files on the release page are data used by setup; you only need to download the
+`setup.exe`. Choose **No** for CPU use, or rerun the same EXE to add NVIDIA later.
+A failed download can be retried without downloading verified files again.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install-nvidia.ps1 -Archive .\erase-it-nvidia-VERSION-windows-x64.zip
-```
+NVIDIA support includes a private Python 3.12 runtime, erase-it's processing
+worker, PyTorch 2.7.1 with CUDA 12.8, TorchVision 0.22.1, SAM 2, and the CUDA,
+cuDNN, cuBLAS and other libraries needed by PyTorch, plus dependencies and notices.
+It does not install the graphics driver or CUDA development toolkit. Model
+weights are downloaded separately in Processing. The source/notice ZIP includes
+the exact Python dependency inventory for both CPU and NVIDIA workers.
 
-Replace `VERSION` with your installed app version. The pack builds after the app
-installer appears on the release page. Maintainers can also run **Build optional
-NVIDIA runtime** manually with an existing matching release tag. The script verifies checksums and installs under
-the current user's app data.
-The NVIDIA driver must support the bundled CUDA 12.8 runtime. If unavailable, Auto
-uses CPU. Selection and tracking use the GPU; import, decoding, and export use the
-CPU. Install a matching pack after each app update; packs from other versions are
-ignored. See the [small Windows guide](docs/quick-start.md) or **Quick guide** in
-the app for selection steps and GPU troubleshooting. To remove the pack, close the app and delete only the `runtimes\nvidia`
-folder under `%APPDATA%\io.github.amreetkumarkhuntia.eraseit`.
+An NVIDIA GPU and driver compatible with CUDA 12.8 are required. If unavailable,
+Automatic uses CPU. Selection and tracking use the GPU; import, decoding, and
+export use CPU. Choose NVIDIA support again when updating the app; runtimes
+from other versions are ignored. See the [small Windows guide](docs/quick-start.md)
+or **Quick guide** in the app for selection steps and GPU troubleshooting.
+To remove GPU support, close the app and delete only `runtimes\nvidia` under
+`%APPDATA%\io.github.amreetkumarkhuntia.eraseit`.
 
 ## Development
 
@@ -128,10 +131,11 @@ semantic-release calculates the version from all commits since the last release:
 With no existing version tag, semantic-release starts at **1.0.0**.
 
 The workflow updates the npm, Tauri, Rust, and Python versions and the optional
-NVIDIA installer version, then packages and checks the frozen worker and builds
-the Windows installer. It commits these versions and `CHANGELOG.md` as
+NVIDIA installer version, then packages and checks both frozen workers. It builds
+the Windows installer with pinned download hashes and tests an actual silent
+installation with NVIDIA support before publishing. It commits these versions and `CHANGELOG.md` as
 `docs(release): VERSION [skip ci]`, pushes that commit and `vVERSION`, and publishes
-the installer, sources/notices ZIP, and checksums to GitHub Releases. Pull the
+the installer, NVIDIA data files, sources/notices ZIP, and checksums to GitHub Releases. Pull the
 generated commit before your next push. Release builds run serially; if `main`
 has advanced before semantic-release starts, it skips the stale run. Use another
 `feat` or `fix` commit to request a release of the latest changes in that case.
@@ -141,14 +145,17 @@ for the release job. No npm publishing token or personal access token is needed.
 Repository branch/tag rules must allow that job to push the release commit and
 version tag. The generated commit skips CI; installer publishing happens in the
 same workflow and does not depend on a second workflow triggered by the bot's tag.
-After publication, a separate job checks out the exact release tag, builds and
-smoke-tests the optional NVIDIA pack, and attaches it to the same release. Hosted
-Windows runners verify CUDA runtime loading, not inference on physical NVIDIA
-hardware. If the optional build fails, the CPU installer stays available. If an
-upload fails, recover the files from that run’s NVIDIA Actions artifact and upload
-only the missing files to its release. Existing assets are not overwritten; do not
-mix parts from separate builds. Tags predating NVIDIA release packaging need an
-app update to use this workflow.
+Both workers and the setup EXE are built in the same release job. GitHub keeps the
+release as a draft until all assets have uploaded, so setup's NVIDIA downloads
+are available when the release becomes public. Hosted Windows runners verify
+installation and CUDA runtime loading; they cannot test inference on physical
+NVIDIA hardware. The NVIDIA files stay below GitHub's per-asset size limit and
+setup joins them automatically. Development installers include CPU support only.
+
+For unattended release installation, use `setup.exe /S /NVIDIA`; omit `/NVIDIA`
+for CPU only. An unsuccessful requested NVIDIA installation exits with code 30.
+The app remains installed and can use CPU processing. The setup log is at
+`%APPDATA%\io.github.amreetkumarkhuntia.eraseit\nvidia-setup.log`.
 
 If building fails, no release commit or tag is pushed. If GitHub uploading fails
 after tagging, the workflow retains `erase-it-release-files` as an Actions

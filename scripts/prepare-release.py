@@ -64,11 +64,28 @@ def stage_assets(root, version):
     media = root / "src-tauri/resources/media"
     sources = root / "artifacts/third-party-sources"
     worker_licenses = root / "src-tauri/resources/worker/licenses"
+    gpu_bundle = root / ".cache/package-cuda/dist/erase-it-worker"
+    gpu_licenses = gpu_bundle / "licenses"
+    metadata = json.loads((root / "src-tauri/resources/setup/nvidia-download.json").read_text(encoding="utf-8"))
+    if metadata["app_version"] != version or metadata["platform"] != "windows-x64" or not metadata["files"]:
+        raise ValueError("NVIDIA download metadata does not match this release")
+    nvidia_files = []
+    for entry in metadata["files"]:
+        name = entry["name"]
+        if not re.fullmatch(rf"erase-it-nvidia-{re.escape(version)}-windows-x64\.zip(?:\.\d{{3}})?", name):
+            raise ValueError("Unexpected NVIDIA release filename")
+        path = root / "artifacts/nvidia" / name
+        with path.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if path.stat().st_size != entry["size"] or digest != entry["sha256"] or path.stat().st_size >= 2 * 1024**3:
+            raise ValueError(f"NVIDIA release file size or checksum does not match: {name}")
+        nvidia_files.append(path)
     required = [
         installers[0], root / "LICENSE", root / "licenses/THIRD_PARTY.md",
         sources / "ffmpeg-source.tar.gz", sources / "ffmpeg-build-scripts.tar.gz",
         sources / "provenance.json", media / "manifest.json",
         media / "build-configuration.txt", worker_licenses / "python-dependencies.json",
+        gpu_licenses / "python-dependencies.json",
     ]
     for path in required:
         if not path.is_file() or path.stat().st_size == 0:
@@ -78,6 +95,7 @@ def stage_assets(root, version):
         (root / "licenses", "licenses"),
         (media / "upstream", "media/upstream"),
         (worker_licenses, "worker/licenses"),
+        (gpu_licenses, "nvidia-worker/licenses"),
     ]
     for directory, _ in directories:
         if not any(path.is_file() for path in directory.rglob("*")):
@@ -87,6 +105,8 @@ def stage_assets(root, version):
     output.mkdir(parents=True)
     installer = output / f"erase-it-{version}-windows-x64-setup.exe"
     shutil.copy2(installers[0], installer)
+    for path in nvidia_files:
+        shutil.copy2(path, output / path.name)
     archive = output / f"third-party-sources-and-notices-{version}.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as package:
         for directory, prefix in directories:
@@ -97,7 +117,7 @@ def stage_assets(root, version):
         for name in ("manifest.json", "build-configuration.txt"):
             package.write(media / name, f"media/{name}")
     checksums = []
-    for path in (installer, archive):
+    for path in (installer, archive, *(output / file.name for file in nvidia_files)):
         with path.open("rb") as stream:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         checksums.append(f"{digest}  {path.name}\n")
@@ -115,7 +135,12 @@ def main():
         [sys.executable, "-m", "pip", "install", "--no-deps", "--no-build-isolation", "-e", "worker"],
         [sys.executable, "scripts/package-worker.py"],
         [sys.executable, "scripts/check-frozen-worker.py"],
+        [sys.executable, "scripts/setup-worker.py", "--device", "cuda"],
+        [str(ROOT / ".venv-cuda/Scripts/python.exe"), "scripts/package-worker.py", "--device", "cuda"],
+        [str(ROOT / ".venv-cuda/Scripts/python.exe"), "scripts/check-frozen-worker.py", "--device", "cuda"],
+        # The installer embeds the just-built runtime's sizes and SHA-256 values.
         [shutil.which("npm.cmd"), "run", "desktop:build"],
+        [sys.executable, "scripts/check-installer.py"],
     ]
     for command in commands:
         subprocess.run(command, cwd=ROOT, check=True)

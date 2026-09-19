@@ -10,6 +10,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def checksum(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def download_manifest(version, archive_name, archive_size, archive_hash, unpacked_size, parts):
+    return {
+        "app_version": version, "platform": "windows-x64",
+        "base_url": f"https://github.com/AmreetKumarkhuntia/earse-it/releases/download/v{version}/",
+        "archive": {"name": archive_name, "size": archive_size, "sha256": archive_hash},
+        "unpacked_size": unpacked_size,
+        "files": [{"name": part.name, "size": part.stat().st_size, "sha256": checksum(part)} for part in parts],
+    }
+
+
 def split_archive(archive, limit=1900 * 1024 * 1024):
     """Keep each GitHub Release asset below 2 GiB; checksum covers the joined ZIP."""
     if archive.stat().st_size <= limit:
@@ -69,17 +84,24 @@ def main():
         print(f"CPU worker ready: {target}")
     else:
         version = json.loads((ROOT / "package.json").read_text())["version"]
-        files = {p.relative_to(bundle).as_posix(): hashlib.file_digest(p.open("rb"), "sha256").hexdigest()
+        files = {p.relative_to(bundle).as_posix(): checksum(p)
                  for p in bundle.rglob("*") if p.is_file()}
         (bundle / "runtime-manifest.json").write_text(json.dumps({"app_version": version, "platform": "windows-x64", "files": files}, indent=2))
-        archive = ROOT / f"dist/erase-it-nvidia-{version}-windows-x64"
-        archive.parent.mkdir(exist_ok=True)
+        output = ROOT / "artifacts/nvidia"
+        shutil.rmtree(output, ignore_errors=True)
+        output.mkdir(parents=True)
+        archive = output / f"erase-it-nvidia-{version}-windows-x64"
         result = Path(shutil.make_archive(str(archive), "zip", bundle))
-        with result.open("rb") as stream:
-            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        digest = checksum(result)
+        archive_size = result.stat().st_size
         result.with_suffix(".zip.sha256").write_text(f"{digest}  {result.name}\n")
-        shutil.copy2(ROOT / "scripts/install-nvidia.ps1", result.parent)
-        print(f"NVIDIA pack ready: {split_archive(result)}")
+        parts = split_archive(result)
+        manifest = download_manifest(version, result.name, archive_size, digest,
+                                     sum(p.stat().st_size for p in bundle.rglob("*") if p.is_file()), parts)
+        setup = ROOT / "src-tauri/resources/setup"
+        setup.mkdir(parents=True, exist_ok=True)
+        (setup / "nvidia-download.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        print(f"NVIDIA pack ready: {parts}")
 
 
 if __name__ == "__main__":

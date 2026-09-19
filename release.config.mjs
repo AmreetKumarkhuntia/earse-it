@@ -25,8 +25,9 @@ export default {
     }],
     ['@semantic-release/github', {
       assets: [
-        { path: 'artifacts/release/*.exe', label: 'Windows x64 installer' },
-        { path: 'artifacts/release/*.zip', label: 'Third-party sources and notices' },
+        { path: 'artifacts/release/*.exe', label: 'Windows setup — app and optional NVIDIA support' },
+        { path: 'artifacts/release/third-party-sources-and-notices-*.zip', label: 'Third-party sources and notices' },
+        { path: 'artifacts/release/erase-it-nvidia-*', label: 'NVIDIA runtime data — setup downloads this automatically' },
         { path: 'artifacts/release/SHA256SUMS', label: 'SHA-256 checksums' },
       ],
       successComment: false,

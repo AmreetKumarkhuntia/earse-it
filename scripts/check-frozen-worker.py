@@ -9,8 +9,9 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
+parser.add_argument("--bundle", type=Path, help="Check an installed runtime instead of the build output")
 args = parser.parse_args()
-bundle = root / (".cache/package-cuda/dist/erase-it-worker" if args.device == "cuda" else "src-tauri/resources/worker")
+bundle = args.bundle or root / (".cache/package-cuda/dist/erase-it-worker" if args.device == "cuda" else "src-tauri/resources/worker")
 worker = bundle / ("erase-it-worker.exe" if os.name == "nt" else "erase-it-worker")
 environment = {key: value for key, value in os.environ.items() if key not in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV")}
 with tempfile.TemporaryDirectory() as directory:

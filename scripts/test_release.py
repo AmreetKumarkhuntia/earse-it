@@ -47,8 +47,16 @@ class ReleaseTests(unittest.TestCase):
             "src-tauri/resources/media/upstream/LICENSE.txt",
             "src-tauri/resources/worker/licenses/python-dependencies.json",
             "src-tauri/resources/worker/licenses/SAM2-LICENSE",
+            ".cache/package-cuda/dist/erase-it-worker/licenses/python-dependencies.json",
         ):
             self.write(relative)
+        part = self.write("artifacts/nvidia/erase-it-nvidia-1.2.3-windows-x64.zip")
+        self.write("src-tauri/resources/setup/nvidia-download.json", json.dumps({
+            "app_version": "1.2.3", "platform": "windows-x64", "files": [{
+                "name": part.name, "size": part.stat().st_size,
+                "sha256": hashlib.sha256(part.read_bytes()).hexdigest(),
+            }],
+        }))
 
     def test_version_update_keeps_all_manifests_in_sync(self):
         self.versions()
@@ -91,7 +99,23 @@ class ReleaseTests(unittest.TestCase):
                 "licenses/THIRD_PARTY.md", "media/build-configuration.txt", "media/manifest.json",
                 "media/upstream/LICENSE.txt", "worker/licenses/python-dependencies.json",
                 "worker/licenses/SAM2-LICENSE",
+                "nvidia-worker/licenses/python-dependencies.json",
             }.issubset(archive.namelist()))
+        self.assertEqual((output / "erase-it-nvidia-1.2.3-windows-x64.zip").read_bytes(), b"fixture\n")
+
+    def test_changed_nvidia_files_or_version_block_release(self):
+        self.assets()
+        metadata_path = self.root / "src-tauri/resources/setup/nvidia-download.json"
+        metadata = json.loads(metadata_path.read_text())
+        metadata["app_version"] = "1.2.2"
+        metadata_path.write_text(json.dumps(metadata))
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            release.stage_assets(self.root, "1.2.3")
+        metadata["app_version"] = "1.2.3"
+        metadata_path.write_text(json.dumps(metadata))
+        self.write("artifacts/nvidia/erase-it-nvidia-1.2.3-windows-x64.zip", "changed")
+        with self.assertRaisesRegex(ValueError, "checksum does not match"):
+            release.stage_assets(self.root, "1.2.3")
 
     def test_missing_sources_or_upstream_notices_block_release(self):
         self.assets()

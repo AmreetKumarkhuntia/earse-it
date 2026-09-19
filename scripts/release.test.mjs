@@ -11,7 +11,7 @@ import releaseConfig from '../release.config.mjs';
 import { isReleaseCommit, shouldRelease } from './release-trigger.mjs';
 import { analyzeCommits, success } from './semantic-release.mjs';
 
-test('a successful release exposes its exact version to the NVIDIA job', () => {
+test('a successful release exposes its exact version to the workflow', () => {
   const root = mkdtempSync(join(tmpdir(), 'erase-it-release-output-'));
   try {
     const output = join(root, 'output');
