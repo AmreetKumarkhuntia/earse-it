@@ -27,14 +27,13 @@ def test_mask_coverage_has_no_duplicates():
     assert ranges([2, 0, 1, 1, 4, 7, 8]) == [[0, 2], [4, 4], [7, 8]]
 
 
-def test_save_reopen_retains_corrections_and_detects_source_changes(project, tmp_path):
+def test_save_reopen_retains_corrections_and_detects_source_changes(project, tmp_path, video):
     project.data["prompts"] = {"1": {"points": [[.4, .5, 1]], "box": None}}
     project.project_file = tmp_path / "saved.cutout"
     project.save()
     reopened = Project.load(project.root, project.project_file)
     assert reopened.data["prompts"] == project.data["prompts"]
-    source = tmp_path / "sample with spaces & symbols.mkv"
-    with source.open("ab") as stream:
+    with video.open("ab") as stream:
         stream.write(b"changed")
     with pytest.raises(CutoutError, match="source video changed"):
         Project.load(project.root, project.project_file)
