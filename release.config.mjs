@@ -10,13 +10,8 @@ export default {
         types: [
           { type: 'feat', section: 'Features' },
           { type: 'fix', section: 'Fixes' },
-          { type: 'perf', section: 'Performance' },
-          { type: 'chore', section: 'Maintenance' },
           { type: 'docs', section: 'Documentation' },
           { type: 'refactor', section: 'Refactoring' },
-          { type: 'test', section: 'Tests' },
-          { type: 'ci', section: 'CI' },
-          { type: 'build', section: 'Build' },
         ],
       },
     }],
@@ -26,7 +21,7 @@ export default {
         'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock',
         'worker/pyproject.toml', 'worker/erase_it/__init__.py', 'scripts/install-nvidia.ps1',
       ],
-      message: 'chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}',
+      message: 'docs(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}',
     }],
     ['@semantic-release/github', {
       assets: [

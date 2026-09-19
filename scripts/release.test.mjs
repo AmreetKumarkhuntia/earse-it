@@ -21,26 +21,26 @@ test('a successful release exposes its exact version to the NVIDIA job', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('only a chore subject can request release', () => {
-  for (const message of ['chore: ship', 'chore(deps): update', 'chore(release): publish', 'chore!: break']) {
+test('only features, fixes, and breaking changes request a release', () => {
+  for (const message of ['feat: add selection', 'fix(gpu): load CUDA', 'refactor!: change schema',
+    'docs!: change support policy', 'refactor: change schema\n\nBREAKING CHANGE: old files need conversion',
+    'refactor: change schema\n\nBREAKING-CHANGE: old files need conversion']) {
     assert.equal(isReleaseCommit(message), true, message);
   }
-  for (const message of [
-    'feat: add export', 'fix: repair export', 'docs: help\n\nchore: ship',
-    'Merge pull request #1\n\nchore: ship', 'chore:', 'choreography: change',
-    'chore(release): 1.2.3 [skip ci]', 'chore: update [skip release]',
-  ]) {
+  for (const message of ['chore: ship', 'docs: explain selection', 'refactor: simplify code',
+    'docs: help\n\nfeat: old text', 'Merge pull request #1\n\nfix: repair', 'fix:',
+    'feature: add selection', 'docs(release): 1.2.3 [skip ci]', 'fix: repair [skip release]']) {
     assert.equal(isReleaseCommit(message), false, message);
   }
 });
 
 test('PRs, manual runs, tags, and other branches cannot publish', () => {
-  assert.equal(shouldRelease('push', 'refs/heads/main', 'chore: ship'), true);
+  assert.equal(shouldRelease('push', 'refs/heads/main', 'fix: repair export'), true);
   for (const [event, ref] of [
     ['pull_request', 'refs/heads/main'], ['workflow_dispatch', 'refs/heads/main'],
     ['push', 'refs/heads/feature'], ['push', 'refs/tags/v1.0.0'],
   ]) {
-    assert.equal(shouldRelease(event, ref, 'chore: ship'), false);
+    assert.equal(shouldRelease(event, ref, 'fix: repair export'), false);
   }
 });
 
@@ -62,26 +62,28 @@ async function analyze(messages) {
   }
 }
 
-test('analyzer also rejects older chores when HEAD is a feature', async () => {
-  assert.equal(await analyze(['chore: earlier maintenance', 'feat: new export']), null);
+test('ordinary docs and refactors at HEAD do not request a release', async () => {
+  assert.equal(await analyze(['feat: earlier feature', 'docs: update the guide']), null);
+  assert.equal(await analyze(['fix: earlier fix', 'refactor: simplify code']), null);
 });
 
-test('chore requests at least a patch, including non-conventional earlier commits', async () => {
-  assert.equal(await analyze(['Fix the old export path', 'chore: ship']), 'patch');
+test('fix requests a patch', async () => {
+  assert.equal(await analyze(['docs: write a guide', 'fix: repair export']), 'patch');
 });
 
-test('features accumulated before a chore request produce a minor release', async () => {
-  assert.equal(await analyze(['feat: new export', 'chore(release): ship']), 'minor');
+test('features accumulated before a fix produce a minor release', async () => {
+  assert.equal(await analyze(['feat: new export', 'fix: repair export']), 'minor');
 });
 
-test('breaking features and breaking chores produce major releases', async () => {
-  assert.equal(await analyze(['feat!: new format', 'chore: ship']), 'major');
-  assert.equal(await analyze(['chore!: change runtime']), 'major');
-  assert.equal(await analyze(['chore: change runtime\n\nBREAKING CHANGE: old projects need conversion']), 'major');
+test('breaking changes of any allowed type produce a major release', async () => {
+  for (const type of ['feat', 'fix', 'docs', 'refactor']) {
+    assert.equal(await analyze([`${type}!: change behavior`]), 'major');
+    assert.equal(await analyze([`${type}: change behavior\n\nBREAKING CHANGE: old files need conversion`]), 'major');
+  }
 });
 
 test('the generated release commit does not request another release', async () => {
-  assert.equal(await analyze(['feat: export', 'chore(release): 1.0.0 [skip ci]']), null);
+  assert.equal(await analyze(['feat: export', 'docs(release): 1.0.0 [skip ci]']), null);
 });
 
 test('semantic-release dry run resolves the configured plugins and versions without publishing', async () => {
@@ -99,7 +101,7 @@ test('semantic-release dry run resolves the configured plugins and versions with
     git(cwd, 'config', 'user.email', 'release-test@example.com');
     git(cwd, 'config', 'user.name', 'Release Test');
     git(cwd, 'config', 'commit.gpgsign', 'false');
-    git(cwd, 'commit', '--allow-empty', '-m', 'chore: first release');
+    git(cwd, 'commit', '--allow-empty', '-m', 'feat: initial release');
     git(cwd, 'push', 'origin', 'main');
     // Keep all local lifecycle hooks. Only omit GitHub authentication/publishing.
     const plugins = releaseConfig.plugins.filter(entry => entry[0] !== '@semantic-release/github').map(entry => {
@@ -121,15 +123,15 @@ test('semantic-release dry run resolves the configured plugins and versions with
     assert.equal(first.nextRelease.version, '1.0.0');
     assert.equal(git(cwd, 'tag', '--list').trim(), '');
     git(cwd, 'tag', 'v1.0.0');
-    git(cwd, 'commit', '--allow-empty', '-m', 'feat: new export');
+    git(cwd, 'commit', '--allow-empty', '-m', 'docs: explain export');
     git(cwd, 'push', 'origin', 'main', '--tags');
     assert.equal(await run(), false);
-    git(cwd, 'commit', '--allow-empty', '-m', 'chore: publish export');
+    git(cwd, 'commit', '--allow-empty', '-m', 'feat: new export');
     git(cwd, 'push', 'origin', 'main');
     const next = await run();
     assert.equal(next.nextRelease.version, '1.1.0');
     assert.match(next.nextRelease.notes, /new export/);
-    assert.match(next.nextRelease.notes, /publish export/);
+    assert.match(next.nextRelease.notes, /explain export/);
     assert.equal(git(cwd, 'tag', '--list').trim(), 'v1.0.0');
   } finally {
     rmSync(root, { recursive: true, force: true });

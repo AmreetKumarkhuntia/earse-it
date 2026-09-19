@@ -18,6 +18,7 @@ jobs:
     timeout-minutes: 60
     env:
       SAM2_BUILD_CUDA: '0'
+      HUSKY: '0'
     steps:
       - uses: actions/checkout@v4
         with:

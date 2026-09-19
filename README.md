@@ -112,34 +112,29 @@ companion source and notice artifact alongside any redistributed installer.
 
 ## Automated releases
 
-Push to `main` with a Conventional Commit subject beginning with `chore:` or
-`chore(scope):` to request a release. For example, after committing your changes:
+Commit messages are enforced by a Git hook and CI. Only `feat`, `fix`, `docs`, and
+`refactor` are allowed: `type(optional-scope): short description`. Run `npm ci` to
+install the hook. See [CONTRIBUTING.md](CONTRIBUTING.md) for examples and rules.
 
-```sh
-git commit --allow-empty -m "chore(release): publish Windows installer"
-git push origin main
-```
-
-Only the pushed HEAD commit is checked. With squash merging, use a `chore:` subject
-for the squash commit when requesting a release. Other commit types, pull requests,
-and manual workflow runs build and test without publishing. Add `[skip release]`
-to a chore commit to run CI without requesting a release.
+Push a `feat` or `fix` commit to `main` to request an automatic release. Breaking
+changes of any allowed type also request one. Ordinary `docs` and `refactor`
+commits, pull requests, and manual runs build and test without publishing. Add
+`[skip release]` to defer publishing for a particular push. Only HEAD decides
+whether the push requests a release; use a matching PR title when squash merging.
 
 After frontend tests, worker tests, real CPU inference, and Rust formatting pass,
 semantic-release calculates the version from all commits since the last release:
-`fix:` and ordinary `chore:` changes give a patch, `feat:` gives a minor, and `!`
-or a `BREAKING CHANGE:` footer gives a major. A feature or fix waits for a subsequent
-chore commit to trigger publishing. With no existing version tag, semantic-release
-starts at **1.0.0**.
+`fix` gives a patch, `feat` a minor, and `!` or a `BREAKING CHANGE:` footer a major.
+With no existing version tag, semantic-release starts at **1.0.0**.
 
 The workflow updates the npm, Tauri, Rust, and Python versions and the optional
 NVIDIA installer version, then packages and checks the frozen worker and builds
 the Windows installer. It commits these versions and `CHANGELOG.md` as
-`chore(release): VERSION [skip ci]`, pushes that commit and `vVERSION`, and publishes
+`docs(release): VERSION [skip ci]`, pushes that commit and `vVERSION`, and publishes
 the installer, sources/notices ZIP, and checksums to GitHub Releases. Pull the
 generated commit before your next push. Release builds run serially; if `main`
 has advanced before semantic-release starts, it skips the stale run. Use another
-chore commit to request a release of the latest changes in that case.
+`feat` or `fix` commit to request a release of the latest changes in that case.
 
 Publishing uses the workflow's built-in `GITHUB_TOKEN` with `contents: write` only
 for the release job. No npm publishing token or personal access token is needed.

@@ -5,14 +5,14 @@ import { analyzeCommits as analyzeConventionalCommits } from '@semantic-release/
 import { headMessage, isReleaseCommit } from './release-trigger.mjs';
 
 export async function analyzeCommits(_config, context) {
-  // Check HEAD, not any older chore in the unreleased commit history.
+  // A qualifying HEAD requests publishing; analyze all unreleased commits for the version.
   if (!isReleaseCommit(headMessage(context.cwd))) {
-    context.logger.log('Only a chore commit at HEAD requests a release.');
+    context.logger.log('Only a feature, fix, or breaking change at HEAD requests a release.');
     return null;
   }
   return analyzeConventionalCommits({
     preset: 'conventionalcommits',
-    releaseRules: [{ breaking: true, release: 'major' }, { type: 'chore', release: 'patch' }],
+    releaseRules: [{ breaking: true, release: 'major' }],
   }, context);
 }
 

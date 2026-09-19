@@ -8,6 +8,9 @@
     "node": ">=24.15.0"
   },
   "scripts": {
+    "prepare": "husky",
+    "commitlint": "commitlint",
+    "test:commits": "node --test scripts/commits.test.mjs",
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "build": "tsc --noEmit && vite build",
     "check": "tsc --noEmit",
@@ -27,6 +30,8 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
     "@playwright/test": "^1.63.0",
     "@semantic-release/git": "11.0.1",
     "@tauri-apps/cli": "^2.8.0",
@@ -35,6 +40,7 @@
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^4.7.0",
     "conventional-changelog-conventionalcommits": "8.0.0",
+    "husky": "9.1.7",
     "semantic-release": "25.0.9",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",

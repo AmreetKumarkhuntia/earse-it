@@ -4,7 +4,9 @@ import { pathToFileURL } from 'node:url';
 
 export function isReleaseCommit(message) {
   const subject = message.split(/\r?\n/, 1)[0];
-  return /^chore(?:\([^()\r\n]+\))?!?:\s+\S/.test(subject)
+  const parsed = /^(feat|fix|docs|refactor)(?:\([^()\r\n]+\))?(!)?:[ \t]+\S/.exec(subject);
+  return !!parsed && (['feat', 'fix'].includes(parsed[1]) || !!parsed[2]
+    || /^BREAKING[ -]CHANGE:[ \t]+\S/m.test(message))
     && !/\[(?:skip ci|ci skip|skip release|release skip)\]/i.test(message);
 }
 
@@ -23,5 +25,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `release=${release}\n`);
   }
-  console.log(release ? 'Chore commit: release after validation.' : 'Build and test without publishing.');
+  console.log(release ? 'Feature, fix, or breaking change: release after validation.' : 'Build and test without publishing.');
 }
