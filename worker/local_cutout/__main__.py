@@ -83,6 +83,10 @@ def serve(root: Path, input_stream=None, output_stream=None):
 
 
 def main():
+    # Windows pipes otherwise inherit the system code page, while Rust sends UTF-8.
+    sys.stdin.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
     parser = argparse.ArgumentParser(description="Local Cutout JSON worker")
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--download-model", choices=["tiny", "base_plus"])

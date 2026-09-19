@@ -15,7 +15,7 @@ def job():
 
 @pytest.fixture
 def video(tmp_path):
-    path = tmp_path / "sample with spaces & symbols.mkv"
+    path = tmp_path / "sample café 背景 & symbols.mkv"
     subprocess.run([binary("ffmpeg"), "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=96x64:rate=4:duration=2",
                     "-f", "lavfi", "-i", "sine=frequency=400:sample_rate=48000:duration=2",
                     "-c:v", "ffv1", "-c:a", "pcm_s16le", "-shortest", str(path)], check=True)
