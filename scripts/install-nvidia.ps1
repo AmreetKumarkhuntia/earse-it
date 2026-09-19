@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 # Windows PowerShell launched through Python or NSIS can inherit PowerShell 7's
 # incompatible modules. This helper needs only its own built-in modules.
 $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
-$AppVersion = "1.1.0"
+$AppVersion = "1.1.1"
 if (Get-Process -Name "erase-it", "erase-it-worker" -ErrorAction SilentlyContinue) {
     throw "Close erase-it before installing the NVIDIA pack."
 }

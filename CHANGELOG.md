@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1](https://github.com/AmreetKumarkhuntia/earse-it/compare/v1.1.0...v1.1.1) (2026-09-19)
+
+### Fixes
+
+* **gpu:** preserve tensor devices in tracking cache ([1798771](https://github.com/AmreetKumarkhuntia/earse-it/commit/179877142d3dc83fdc0fbf21f1be8de039d3dd48))
+
 ## [1.1.0](https://github.com/AmreetKumarkhuntia/earse-it/compare/v1.0.1...v1.1.0) (2026-09-19)
 
 ### Features
