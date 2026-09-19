@@ -65,7 +65,7 @@ jobs:
         with:
           name: third-party-sources-and-notices
           path: |
-            dist/third-party-sources/
+            artifacts/third-party-sources/
             licenses/
             src-tauri/resources/media/upstream/
             src-tauri/resources/worker/licenses/

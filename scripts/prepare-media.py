@@ -47,7 +47,8 @@ def main():
         if "--enable-gpl" in configuration or "--enable-nonfree" in configuration:
             raise SystemExit("GPL or nonfree FFmpeg builds must not be bundled by this packaging workflow.")
         (target / "build-configuration.txt").write_text(configuration)
-    sources = ROOT / "dist/third-party-sources"
+    # Vite clears dist/ while building the desktop frontend.
+    sources = ROOT / "artifacts/third-party-sources"
     sources.mkdir(parents=True, exist_ok=True)
     urls = {
         "ffmpeg-source.tar.gz": f"https://github.com/FFmpeg/FFmpeg/archive/{manifest['ffmpeg_revision']}.tar.gz",

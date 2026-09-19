@@ -40,7 +40,7 @@ fn worker_command(app: &tauri::AppHandle, data: &Path) -> Result<Command, String
         let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
         let default_worker = resources.join("worker/local-cutout-worker.exe");
         // GPU packs are installed explicitly under app data. Validate their pinned checksum
-        // manifest in install-runtime.py before atomically publishing this directory.
+        // manifest in install-nvidia.ps1 before atomically publishing this directory.
         let gpu_worker = data.join("runtimes/nvidia/local-cutout-worker.exe");
         let worker = if gpu_worker.is_file() {
             gpu_worker
