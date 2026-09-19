@@ -3,7 +3,7 @@ param(
     [string]$DataDirectory = (Join-Path $env:APPDATA "io.github.amreetkumarkhuntia.eraseit")
 )
 $ErrorActionPreference = "Stop"
-$AppVersion = "1.0.0"
+$AppVersion = "1.0.1"
 if (Get-Process -Name "erase-it", "erase-it-worker" -ErrorAction SilentlyContinue) {
     throw "Close erase-it before installing the NVIDIA pack."
 }
