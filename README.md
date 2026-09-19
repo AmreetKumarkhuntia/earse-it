@@ -44,19 +44,24 @@ On first use, download the 156 MB Tiny model in **Processing**. Base+ is an opti
 models need no network access. CPU operation is always available; runtime and driver
 compatibility determine GPU availability. AMD/Intel GPU acceleration is deferred.
 
-The optional **Build optional NVIDIA runtime** workflow produces a separate CUDA
-runtime pack. Download its ZIP, matching `.zip.sha256`, and `install-nvidia.ps1` from
-the same successful build. Close the app, then run in PowerShell:
+Each new release also builds a separate NVIDIA CUDA runtime pack and attaches it
+to that release. Download its ZIP, matching `.zip.sha256`, and `install-nvidia.ps1`
+from the same version. Large ZIPs are split into numbered parts; download every
+part and the checksum file, and the installer script will join them automatically. Close the app, then run in PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install-nvidia.ps1 -Archive .\erase-it-nvidia-VERSION-windows-x64.zip
 ```
 
-Replace `VERSION` with your installed app version, and run the NVIDIA workflow
-against its matching release tag. The script verifies checksums and installs under
+Replace `VERSION` with your installed app version. The pack builds after the app
+installer appears on the release page. Maintainers can also run **Build optional
+NVIDIA runtime** manually with an existing matching release tag. The script verifies checksums and installs under
 the current user's app data.
 The NVIDIA driver must support the bundled CUDA 12.8 runtime. If unavailable, Auto
-uses CPU. To remove the pack, close the app and delete only the `runtimes\nvidia`
+uses CPU. Selection and tracking use the GPU; import, decoding, and export use the
+CPU. Install a matching pack after each app update; packs from other versions are
+ignored. See the [small Windows guide](docs/quick-start.md) or **Quick guide** in
+the app for selection steps and GPU troubleshooting. To remove the pack, close the app and delete only the `runtimes\nvidia`
 folder under `%APPDATA%\io.github.amreetkumarkhuntia.eraseit`.
 
 ## Development
@@ -141,6 +146,14 @@ for the release job. No npm publishing token or personal access token is needed.
 Repository branch/tag rules must allow that job to push the release commit and
 version tag. The generated commit skips CI; installer publishing happens in the
 same workflow and does not depend on a second workflow triggered by the bot's tag.
+After publication, a separate job checks out the exact release tag, builds and
+smoke-tests the optional NVIDIA pack, and attaches it to the same release. Hosted
+Windows runners verify CUDA runtime loading, not inference on physical NVIDIA
+hardware. If the optional build fails, the CPU installer stays available. If an
+upload fails, recover the files from that run’s NVIDIA Actions artifact and upload
+only the missing files to its release. Existing assets are not overwritten; do not
+mix parts from separate builds. Tags predating NVIDIA release packaging need an
+app update to use this workflow.
 
 If building fails, no release commit or tag is pushed. If GitHub uploading fails
 after tagging, the workflow retains `erase-it-release-files` as an Actions

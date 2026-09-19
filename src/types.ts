@@ -15,7 +15,12 @@ export type Project = {
 export type Model = { id: string; name: string; description: string; size: number; installed: boolean; license: string };
 export type Hello = {
   protocol: number; version: string; models: Model[]; last_project: string | null;
-  capabilities: { inference_ready: boolean; cuda_available: boolean; cuda_device: string | null; cpu_available: boolean; media_ready: boolean };
+  capabilities: {
+    inference_ready: boolean; cuda_available: boolean; cuda_device: string | null;
+    cpu_available: boolean; media_ready: boolean;
+    gpu_status?: 'runtime_missing' | 'cpu_only' | 'cuda_unavailable' | 'available' | 'runtime_error';
+    cuda_runtime?: string | null; runtime_error?: string | null;
+  };
 };
 export type Progress = { event: 'progress'; job_id: string; stage: string; current: number; total: number; elapsed: number; frame?: number; device?: string };
 export type FrameResult = { path: string; has_mask: boolean; frame: number };

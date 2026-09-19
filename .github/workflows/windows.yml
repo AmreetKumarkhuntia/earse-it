@@ -6,8 +6,14 @@ on:
         description: Build and publish a semantic release after validation
         type: boolean
         default: false
+    outputs:
+      version:
+        description: Published version, empty when no release was created
+        value: ${{ jobs.build.outputs.version }}
 jobs:
   build:
+    outputs:
+      version: ${{ steps.publish.outputs.version }}
     runs-on: windows-latest
     timeout-minutes: 60
     env:
@@ -29,6 +35,7 @@ jobs:
         with:
           workspaces: src-tauri -> target
       - run: npm ci
+      - run: python -m unittest discover -s scripts -p 'test_nvidia.py' -v
       - run: python scripts/setup-worker.py
       - run: python scripts/prepare-media.py
       - name: Set media tool paths
@@ -54,6 +61,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run desktop:build
       - name: Version, build, commit, tag, and publish release
+        id: publish
         if: inputs.release
         run: npm run release
         env:

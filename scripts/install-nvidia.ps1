@@ -7,19 +7,36 @@ $AppVersion = "1.0.0"
 if (Get-Process -Name "erase-it", "erase-it-worker" -ErrorAction SilentlyContinue) {
     throw "Close erase-it before installing the NVIDIA pack."
 }
-$Archive = (Resolve-Path $Archive).Path
+$Archive = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Archive)
 $ChecksumPath = "$Archive.sha256"
 if (!(Test-Path $ChecksumPath)) { throw "Keep the .zip.sha256 file beside the downloaded archive." }
 $Expected = ((Get-Content $ChecksumPath -Raw).Trim() -split '\s+')[0]
-if ((Get-FileHash $Archive -Algorithm SHA256).Hash.ToLower() -ne $Expected.ToLower()) {
-    throw "Runtime pack checksum mismatch. Download the pack again."
-}
+$JoinedArchive = $null
 $RuntimeDirectory = Join-Path $DataDirectory "runtimes"
 New-Item -ItemType Directory -Path $RuntimeDirectory -Force | Out-Null
 $Staging = Join-Path $RuntimeDirectory ("staging-" + [Guid]::NewGuid().ToString("N"))
 $Destination = Join-Path $RuntimeDirectory "nvidia"
 $Backup = Join-Path $RuntimeDirectory "nvidia-previous"
 try {
+    if (!(Test-Path -LiteralPath $Archive)) {
+        $Parts = @(Get-ChildItem -LiteralPath (Split-Path $Archive) -File | Where-Object {
+            $_.Name -match ('^' + [regex]::Escape((Split-Path $Archive -Leaf)) + '\.\d{3}$')
+        } | Sort-Object Name)
+        if (!$Parts.Count) { throw "Download the ZIP or all its numbered parts before installing." }
+        $JoinedArchive = Join-Path $RuntimeDirectory ("download-" + [Guid]::NewGuid().ToString("N") + ".zip")
+        $Output = [IO.File]::Create($JoinedArchive)
+        try {
+            for ($Index = 0; $Index -lt $Parts.Count; $Index++) {
+                if (!$Parts[$Index].Name.EndsWith(('.{0:D3}' -f ($Index + 1)))) { throw "A numbered ZIP part is missing. Download every part." }
+                $InputFile = [IO.File]::OpenRead($Parts[$Index].FullName)
+                try { $InputFile.CopyTo($Output) } finally { $InputFile.Dispose() }
+            }
+        } finally { $Output.Dispose() }
+        $Archive = $JoinedArchive
+    }
+    if ((Get-FileHash -LiteralPath $Archive -Algorithm SHA256).Hash.ToLower() -ne $Expected.ToLower()) {
+        throw "Runtime pack checksum mismatch. Download the ZIP or every numbered part again."
+    }
     Expand-Archive -LiteralPath $Archive -DestinationPath $Staging
     $Manifest = Get-Content (Join-Path $Staging "runtime-manifest.json") -Raw | ConvertFrom-Json
     if ($Manifest.app_version -ne $AppVersion -or $Manifest.platform -ne "windows-x64") { throw "This runtime pack does not match erase-it $AppVersion for Windows x64." }
@@ -37,4 +54,5 @@ try {
     Write-Host "NVIDIA runtime installed. Open erase-it and leave Processor set to Automatic."
 } finally {
     if (Test-Path $Staging) { Remove-Item -LiteralPath $Staging -Recurse -Force }
+    if ($JoinedArchive -and (Test-Path $JoinedArchive)) { Remove-Item -LiteralPath $JoinedArchive -Force }
 }

@@ -3,5 +3,8 @@
   "identifier": "main-window",
   "description": "Local project and media selection, with worker events",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save"]
+  "permissions": [
+    "core:default", "dialog:allow-open", "dialog:allow-save",
+    { "identifier": "opener:allow-open-url", "allow": [{ "url": "https://github.com/AmreetKumarkhuntia/earse-it/releases/tag/*" }] }
+  ]
 }

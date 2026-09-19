@@ -186,6 +186,7 @@ class Engine:
 
     def preview(self, project, frame: int, job: Job):
         self.load(project.data["model"], project.data["device"], job)
+        job.progress("Updating selection", device=self.device)
         import torch
         prompt = project.data["prompts"].get(str(frame))
         if not prompt:

@@ -1,4 +1,5 @@
 """Smoke-test the packaged runtime without relying on site-packages or PYTHONPATH."""
+import argparse
 import json
 import os
 import subprocess
@@ -6,7 +7,11 @@ import tempfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
-worker = root / "src-tauri/resources/worker" / ("erase-it-worker.exe" if os.name == "nt" else "erase-it-worker")
+parser = argparse.ArgumentParser()
+parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
+args = parser.parse_args()
+bundle = root / (".cache/package-cuda/dist/erase-it-worker" if args.device == "cuda" else "src-tauri/resources/worker")
+worker = bundle / ("erase-it-worker.exe" if os.name == "nt" else "erase-it-worker")
 environment = {key: value for key, value in os.environ.items() if key not in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV")}
 with tempfile.TemporaryDirectory() as directory:
     subprocess.run([str(worker), "--data-dir", directory, "--self-test"], cwd=directory, env=environment, check=True, timeout=120)
@@ -17,6 +22,8 @@ with tempfile.TemporaryDirectory() as directory:
         process.stdin.flush()
         response = json.loads(process.stdout.readline())
         assert response["result"]["capabilities"]["inference_ready"], response
+        if args.device == "cuda":
+            assert response["result"]["capabilities"]["cuda_runtime"], response
         expected_version = json.loads((root / "package.json").read_text())["version"]
         assert response["result"]["version"] == expected_version, response
         print("Frozen runtime loads PyTorch and SAM 2 successfully.")

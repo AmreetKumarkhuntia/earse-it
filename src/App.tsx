@@ -5,6 +5,8 @@ import { asset, cancel, desktop, request, subscribe, WorkerError } from './bridg
 import { appendPoint, clamp, coveredFrames, imageRect, makeBox, normalizePoint, timecode } from './geometry';
 import type { Box, Edge, FrameResult, Hello, Model, Point, PreviewMode, Progress, Project, Prompts, Tool } from './types';
 import { version as appVersion } from '../package.json';
+import { QuickGuide, type GuidePage } from './QuickGuide';
+import { processingStatus } from './processing';
 
 const MODES: PreviewMode[] = ['overlay', 'cutout', 'mask', 'original'];
 const EMPTY_PROMPT = { points: [] as Point[], box: null as Box | null };
@@ -40,7 +42,7 @@ export function App() {
   const [boxDraft, setBoxDraft] = useState<Box | null>(null);
   const [format, setFormat] = useState<'prores' | 'mask_sequence'>('prores');
   const [playing, setPlaying] = useState(false);
-  const [help, setHelp] = useState(false);
+  const [help, setHelp] = useState<GuidePage | null>(null);
   const [importOptions, setImportOptions] = useState(false);
   const [importFps, setImportFps] = useState('auto');
   const viewer = useRef<HTMLDivElement>(null);
@@ -223,7 +225,7 @@ export function App() {
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
+      if (event.target instanceof HTMLElement && (event.target.closest('dialog') || ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName))) return;
       if (busyRef.current) return;
       if (event.key === '1') setTool('keep');
       if (event.key === '2') setTool('remove');
@@ -240,6 +242,7 @@ export function App() {
     return () => window.removeEventListener('keydown', keydown);
   }, []);
 
+  const processor = processingStatus(hello?.capabilities, project?.device);
   const fps = project ? project.media.fps_num / project.media.fps_den : 30;
   const currentPrompt = project?.prompts[String(frame)] ?? EMPTY_PROMPT;
   const displayedBox = boxDraft ?? currentPrompt.box;
@@ -253,7 +256,7 @@ export function App() {
     <header className="topbar">
       <div className="brand"><span className="brand-mark"><Scissors size={21} strokeWidth={2} /></span><span>erase<span className="brand-light">-it</span><span className="version">BETA</span></span></div>
       <div className="workspace-label"><span className="tiny-dot" /> VIDEO WORKSPACE</div>
-      <div className="top-actions"><span className="local-badge"><ShieldCheck size={14} /> Stays on your device</span><button className="icon-button" title="Help and keyboard shortcuts" aria-label="Help" onClick={() => setHelp(true)}><CircleHelp size={19} /></button></div>
+      <div className="top-actions"><span className="local-badge"><ShieldCheck size={14} /> Stays on your device</span><button className="guide-button" onClick={() => { setPlaying(false); setHelp('selection'); }}><CircleHelp size={17} /> Quick guide</button></div>
     </header>
 
     <div className="workspace">
@@ -269,6 +272,7 @@ export function App() {
         <section><div className="section-label"><span>02</span> SELECT SUBJECT</div><p className="section-copy">A stroke is all it takes.</p>
           <div className="tools">{([{ id: 'keep', icon: Plus, name: 'Keep', key: '1' }, { id: 'remove', icon: Minus, name: 'Remove', key: '2' }, { id: 'box', icon: BoxSelect, name: 'Box', key: 'B' }] as const).map(item => <button key={item.id} className={tool === item.id ? `tool active ${item.id}` : 'tool'} onClick={() => setTool(item.id)} disabled={!!busy}><item.icon size={18} /><span>{item.name}</span><kbd>{item.key}</kbd></button>)}</div>
           <p className="hint">{tool === 'box' ? 'Draw a box around the object you want to keep.' : tool === 'keep' ? 'Paint a short stroke inside your subject.' : 'Paint over areas that should be excluded from the selection.'}</p>
+          <button className="text-button selection-guide" onClick={() => { setPlaying(false); setHelp('selection'); }}>How to select and track <ArrowUpRight size={12} /></button>
           <div className="edit-actions"><button title="Undo selection" disabled={!history.past.length || !!busy} onClick={() => void undo()}><Undo2 size={16} /></button><button title="Redo selection" disabled={!history.future.length || !!busy} onClick={() => void undo(true)}><Redo2 size={16} /></button><button disabled={!project?.prompts[String(frame)] || !!busy} onClick={() => { const next = { ...project!.prompts }; delete next[String(frame)]; void changePrompts(next); }}>Clear frame</button></div>
         </section>
         <section className="corrections"><div className="section-label">CORRECTION FRAMES <span className="count">{Object.keys(project?.prompts ?? {}).length}</span></div>
@@ -291,7 +295,7 @@ export function App() {
               <div className="canvas-label"><span className="tiny-dot" /> SUBJECT 01</div><div className="canvas-meta">{project.media.width} × {project.media.height}<span>{mode === 'original' ? 'Source playback' : 'Frame review'}</span></div>
               {preview && !preview.has_mask && mode !== 'original' && !busy && <div className="canvas-tip"><MousePointer2 size={14} /> Draw on this frame to select your subject</div>}
             </>}
-          {busy && <div className="job-overlay"><LoaderCircle className="spin" size={22} /><strong>{progress?.stage ?? ({ import_video: 'Preparing your footage', set_prompts: 'Updating selection', export: 'Preparing export', download_model: 'Preparing download', track: 'Preparing tracking' }[busy.action] ?? 'Working')}</strong><div className={`progress-bar ${progress?.total ? '' : 'indeterminate'}`}><span style={{ width: `${percentage}%` }} /></div><span>{progress?.total ? `${percentage}% · ${progress.current.toLocaleString()} / ${progress.total.toLocaleString()}` : 'This may take a moment'}</span><button className="text-button" onPointerDown={event => event.stopPropagation()} onClick={() => void cancel(busy.id).catch(error)}>Cancel</button></div>}
+          {busy && <div className="job-overlay"><LoaderCircle className="spin" size={22} /><strong>{progress?.stage ?? ({ import_video: 'Preparing your footage', set_prompts: 'Updating selection', export: 'Preparing export', download_model: 'Preparing download', track: 'Preparing tracking' }[busy.action] ?? 'Working')}</strong>{progress?.device && <span className="job-device">Using {progress.device === 'cuda' ? hello?.capabilities.cuda_device ?? 'NVIDIA GPU' : 'CPU'}</span>}<div className={`progress-bar ${progress?.total ? '' : 'indeterminate'}`}><span style={{ width: `${percentage}%` }} /></div><span>{progress?.total ? `${percentage}% · ${progress.current.toLocaleString()} / ${progress.total.toLocaleString()}` : 'This may take a moment'}</span><button className="text-button" onPointerDown={event => event.stopPropagation()} onClick={() => void cancel(busy.id).catch(error)}>Cancel</button></div>}
         </div>
 
         <div className="timeline">
@@ -312,8 +316,9 @@ export function App() {
           {selectedModel && !selectedModel.installed && <button className="download-model" disabled={!!busy} onClick={() => void downloadModel()}><ArrowDownToLine size={14} /><span>Download model<small>{Math.round(selectedModel.size / 1_000_000)} MB · one-time download</small></span></button>}
           {selectedModel?.installed && <button className="text-button" disabled={!!busy} onClick={() => void downloadModel()}><Check size={12} /> Model installed · Verify / repair</button>}
           <label className="field">Processor<select value={project?.device ?? 'auto'} disabled={!project || !!busy} onChange={event => void updateSettings({ device: event.target.value })}><option value="auto">Automatic</option><option value="cpu">CPU</option><option value="cuda" disabled={!hello?.capabilities.cuda_available}>NVIDIA GPU</option></select></label>
-          <div className="processor-note"><span className="tiny-dot" />{hello?.capabilities.cuda_available ? hello.capabilities.cuda_device : 'CPU processing available'}</div>
-          <p className="hint">CPU exports take longer. You can cancel at any time without losing your selections.</p>
+          <div className="processor-note"><span className="tiny-dot" />{processor.label}</div>
+          <p className="hint">{processor.detail}</p>
+          <button className="text-button" onClick={() => { setPlaying(false); setHelp('gpu'); }}>GPU setup & troubleshooting <ArrowUpRight size={12} /></button>
         </section>
         <section className="export-section"><div className="section-label"><span>04</span> TAKE IT WITH YOU</div><label className="field">Export format<select value={format} onChange={event => setFormat(event.target.value as typeof format)} disabled={!!busy}><option value="prores">Transparent video · MOV</option><option value="mask_sequence">Mask sequence · PNG</option></select></label>
           <div className="export-details"><div><span>Codec</span><strong>{format === 'prores' ? 'ProRes 4444' : '16-bit grayscale'}</strong></div><div><span>Resolution</span><strong>{project ? `${project.media.width} × ${project.media.height}` : 'Source resolution'}</strong></div><div><span>{format === 'prores' ? 'Audio' : 'Timing'}</span><strong>{format === 'prores' ? project?.media.has_audio ? 'Source audio' : 'No audio' : 'Included as JSON'}</strong></div></div>
@@ -325,6 +330,6 @@ export function App() {
     </div>
     <footer className="statusbar"><span><span className="tiny-dot" />{busy ? progress?.stage ?? 'Working' : desktop ? hello ? 'Ready' : 'Starting processing runtime…' : 'Desktop interface preview'}<span className="status-separator">/</span>{project ? project.name : 'No project open'}</span><span>{project ? 'Changes saved locally' : 'Free & open source'}<span className="status-separator">/</span>v{appVersion}</span></footer>
     {notice && <div className={`notice ${notice.error ? 'error' : ''}`} role={notice.error ? 'alert' : 'status'}>{notice.error ? <CircleHelp size={19} /> : <Check size={19} />}<p>{notice.message}</p><button aria-label="Dismiss message" onClick={() => setNotice(null)}><X size={17} /></button></div>}
-    {help && <div className="modal-backdrop" onClick={() => setHelp(false)}><div className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={event => event.stopPropagation()}><button className="modal-close icon-button" aria-label="Close help" onClick={() => setHelp(false)}><X size={20} /></button><span className="eyebrow">A QUICK START</span><h2 id="help-title">A subject. A few strokes.<br />A new possibility.</h2><ol><li><strong>Import</strong> a short SDR video. Choose a frame where your subject is clearly visible.</li><li><strong>Select</strong> with Keep strokes or a box. Remove strokes exclude unwanted areas.</li><li><strong>Track both ways.</strong> Add correction strokes on difficult frames, then retrack from a selection frame.</li><li><strong>Export</strong> a transparent MOV or a mask sequence at the original resolution.</li></ol><p>Masked playback is a frame-by-frame review and may run below real time. Use Original for normal video playback with audio.</p><div className="keyboard-help"><span><kbd>1</kbd> Keep</span><span><kbd>2</kbd> Remove</span><span><kbd>B</kbd> Box</span><span><kbd>← →</kbd> Step</span><span><kbd>Space</kbd> Play</span></div><p className="hint">In Resolve, set the MOV alpha mode to Straight if needed. Import PNG masks as a sequence at the frame rate in timing.json. A .cutout project references your original video; keep that file in place.</p></div></div>}
+    {help && <QuickGuide page={help} onPage={setHelp} onClose={() => setHelp(null)} capabilities={hello?.capabilities} device={project?.device} />}
   </div>;
 }

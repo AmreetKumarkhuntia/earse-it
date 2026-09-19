@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { analyzeCommits as analyzeConventionalCommits } from '@semantic-release/commit-analyzer';
 import { headMessage, isReleaseCommit } from './release-trigger.mjs';
@@ -26,4 +26,9 @@ export function prepare(_config, { cwd, nextRelease }) {
   const changelog = join(cwd, 'CHANGELOG.md');
   const previous = existsSync(changelog) ? readFileSync(changelog, 'utf8').replace(/^# Changelog\s*/, '') : '';
   writeFileSync(changelog, `# Changelog\n\n${nextRelease.notes.trim()}\n\n${previous}`);
+}
+
+export function success(_config, { nextRelease, env }) {
+  // Only schedule the optional runtime after the matching app release is published.
+  if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `version=${nextRelease.version}\n`);
 }

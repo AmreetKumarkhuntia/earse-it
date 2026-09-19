@@ -1,24 +1,65 @@
 name: Build optional NVIDIA runtime
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and attach the NVIDIA runtime to
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    concurrency:
+      group: nvidia-${{ inputs.tag }}
+      cancel-in-progress: false
+    env:
+      SAM2_BUILD_CUDA: '0'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Verify the target release and version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -cne "v$version") { throw 'The tag must match the checked-out app version.' }
+          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - run: python -m unittest discover -s scripts -p 'test_nvidia.py' -v
       - run: python scripts/setup-worker.py --device cuda
       - run: .venv-cuda/Scripts/python scripts/package-worker.py --device cuda
+      - run: .venv-cuda/Scripts/python scripts/check-frozen-worker.py --device cuda
       - uses: actions/upload-artifact@v4
         with:
-          name: erase-it-nvidia-windows-x64
+          name: erase-it-nvidia-${{ inputs.tag }}-windows-x64
+          compression-level: 0
           path: |
-            dist/*.zip
-            dist/*.sha256
+            dist/*.zip*
             dist/install-nvidia.ps1
           if-no-files-found: error
+      - name: Attach NVIDIA downloads to the matching release
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $files = Get-ChildItem dist -File | Where-Object { $_.Name -like '*.zip*' -or $_.Name -eq 'install-nvidia.ps1' }
+          if (!$files) { throw 'No NVIDIA release files were built.' }
+          foreach ($file in $files) {
+            gh release upload $env:RELEASE_TAG $file.FullName --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }

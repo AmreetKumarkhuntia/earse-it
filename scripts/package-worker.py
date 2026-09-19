@@ -10,6 +10,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def split_archive(archive, limit=1900 * 1024 * 1024):
+    """Keep each GitHub Release asset below 2 GiB; checksum covers the joined ZIP."""
+    if archive.stat().st_size <= limit:
+        return [archive]
+    parts = []
+    with archive.open("rb") as source:
+        remaining = archive.stat().st_size
+        while remaining:
+            part = archive.with_name(f"{archive.name}.{len(parts) + 1:03d}")
+            with part.open("wb") as target:
+                size = min(remaining, limit)
+                while size:
+                    chunk = source.read(min(size, 8 * 1024 * 1024))
+                    if not chunk:
+                        raise OSError("Unexpected end of NVIDIA archive")
+                    target.write(chunk)
+                    size -= len(chunk)
+                    remaining -= len(chunk)
+            parts.append(part)
+    archive.unlink()
+    return parts
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
@@ -56,7 +79,7 @@ def main():
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         result.with_suffix(".zip.sha256").write_text(f"{digest}  {result.name}\n")
         shutil.copy2(ROOT / "scripts/install-nvidia.ps1", result.parent)
-        print(f"NVIDIA pack ready: {result}")
+        print(f"NVIDIA pack ready: {split_archive(result)}")
 
 
 if __name__ == "__main__":

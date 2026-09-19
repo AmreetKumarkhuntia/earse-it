@@ -42,7 +42,14 @@ fn worker_command(app: &tauri::AppHandle, data: &Path) -> Result<Command, String
         // GPU packs are installed explicitly under app data. Validate their pinned checksum
         // manifest in install-nvidia.ps1 before atomically publishing this directory.
         let gpu_worker = data.join("runtimes/nvidia/erase-it-worker.exe");
-        let worker = if gpu_worker.is_file() {
+        let matching_pack = fs::read(data.join("runtimes/nvidia/runtime-manifest.json"))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+            .is_some_and(|manifest| {
+                manifest["app_version"] == env!("CARGO_PKG_VERSION")
+                    && manifest["platform"] == "windows-x64"
+            });
+        let worker = if gpu_worker.is_file() && matching_pack {
             gpu_worker
         } else {
             default_worker
@@ -144,6 +151,7 @@ fn worker_request(
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(WorkerHost::default())
         .invoke_handler(tauri::generate_handler![worker_request])
         .build(tauri::generate_context!())

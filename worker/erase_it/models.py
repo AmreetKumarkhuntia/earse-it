@@ -94,11 +94,21 @@ class Models:
 
 def capabilities():
     ready = all(importlib.util.find_spec(name) is not None for name in ("torch", "sam2"))
-    cuda, device = False, None
+    cuda, device, runtime, detail = False, None, None, None
+    status = "runtime_missing"
     if ready:
-        import torch
-        cuda = torch.cuda.is_available()
-        if cuda:
-            device = torch.cuda.get_device_name(0)
+        try:
+            import torch
+            runtime = torch.version.cuda
+            status = "cpu_only" if runtime is None else "cuda_unavailable"
+            cuda = torch.cuda.is_available()
+            if cuda:
+                device = torch.cuda.get_device_name(0)
+                status = "available"
+        except Exception as error:
+            # Keep the help/diagnostics screen usable when a runtime cannot load.
+            cuda, device, ready = False, None, False
+            status, detail = "runtime_error", str(error)
     return {"inference_ready": ready, "cuda_available": cuda, "cuda_device": device,
-            "cpu_available": True, "sam2_revision": MANIFEST["sam2_revision"]}
+            "cpu_available": ready, "gpu_status": status, "cuda_runtime": runtime,
+            "runtime_error": detail, "sam2_revision": MANIFEST["sam2_revision"]}

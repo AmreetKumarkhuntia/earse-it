@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -9,7 +9,17 @@ import { test } from 'node:test';
 import semanticRelease from 'semantic-release';
 import releaseConfig from '../release.config.mjs';
 import { isReleaseCommit, shouldRelease } from './release-trigger.mjs';
-import { analyzeCommits } from './semantic-release.mjs';
+import { analyzeCommits, success } from './semantic-release.mjs';
+
+test('a successful release exposes its exact version to the NVIDIA job', () => {
+  const root = mkdtempSync(join(tmpdir(), 'erase-it-release-output-'));
+  try {
+    const output = join(root, 'output');
+    success({}, { nextRelease: { version: '1.2.3' }, env: { GITHUB_OUTPUT: output } });
+    assert.equal(readFileSync(output, 'utf8'), 'version=1.2.3\n');
+    success({}, { nextRelease: { version: '1.2.3' }, env: {} });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
 
 test('only a chore subject can request release', () => {
   for (const message of ['chore: ship', 'chore(deps): update', 'chore(release): publish', 'chore!: break']) {

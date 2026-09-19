@@ -9,9 +9,19 @@ test('browser preview explains local processing and exposes help', async ({ page
   await expect(page.getByRole('heading', { name: /Make your subject/ })).toBeVisible();
   await page.getByRole('button', { name: 'Import your video' }).click();
   await expect(page.getByRole('alert')).toContainText('desktop');
-  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await page.getByRole('button', { name: 'Quick guide', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Track both ways');
-  await page.getByRole('button', { name: 'Close help' }).click();
+  await page.keyboard.press('2');
+  await expect(page.getByRole('button', { name: 'Keep 1' })).toHaveClass(/active/);
+  await page.getByRole('button', { name: 'GPU setup', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('standard Windows installer includes the CPU runtime');
+  await expect(page.getByRole('dialog')).toContainText('Import, video decoding, and export still use the CPU');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Quick guide', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'GPU setup & troubleshooting' }).click();
+  await expect(page.getByRole('heading', { name: 'Use your NVIDIA GPU' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close guide' }).click();
   await page.getByRole('button', { name: 'Dismiss message' }).click();
   await page.screenshot({ path: 'test-results/workspace.png', fullPage: true });
 });
@@ -70,6 +80,10 @@ test('real CPU worker: import, select, track, correct, undo, save, export', asyn
   try {
     await page.goto('/');
     await expect(page.locator('.statusbar')).toContainText('Ready');
+    await expect(page.locator('.processor-note')).toContainText('CPU');
+    await page.getByRole('button', { name: 'GPU setup & troubleshooting' }).click();
+    await expect(page.locator('.guide-status')).toContainText('The CPU runtime is installed');
+    await page.getByRole('button', { name: 'Close guide' }).click();
     await page.getByRole('button', { name: 'Import your video' }).click();
     await expect(page.locator('.media-card')).toContainText('subject');
     await expect(page.locator('.frame-image')).toBeVisible();
