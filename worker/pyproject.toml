@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "erase-it-worker"
-version = "1.0.1"
+version = "1.1.0"
 description = "Local video selection, tracking and alpha export worker"
 requires-python = ">=3.12,<3.13"
 license = "Apache-2.0"

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0](https://github.com/AmreetKumarkhuntia/earse-it/compare/v1.0.1...v1.1.0) (2026-09-19)
+
+### Features
+
+* **installer:** install optional NVIDIA support from one setup ([9319a31](https://github.com/AmreetKumarkhuntia/earse-it/commit/9319a31e8b5e178ac930f854c905bd4bb1686139))
+
+### Refactoring
+
+* **ci:** standardize commit and release conventions ([fd3c43c](https://github.com/AmreetKumarkhuntia/earse-it/commit/fd3c43c1ea47c247f5b5ab3d6a7aeb5ad6929bb0))
+
 ## [1.0.1](https://github.com/AmreetKumarkhuntia/earse-it/compare/v1.0.0...v1.0.1) (2026-09-19)
 
 ### Maintenance
