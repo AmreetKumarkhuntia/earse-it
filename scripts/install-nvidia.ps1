@@ -38,6 +38,9 @@ try {
         throw "Runtime pack checksum mismatch. Download the ZIP or every numbered part again."
     }
     Expand-Archive -LiteralPath $Archive -DestinationPath $Staging
+    # Canonicalize both sides of the containment check. Windows temporary paths
+    # can contain 8.3 names (RUNNER~1) that GetFullPath expands after extraction.
+    $Staging = [IO.Path]::GetFullPath($Staging)
     $Manifest = Get-Content (Join-Path $Staging "runtime-manifest.json") -Raw | ConvertFrom-Json
     if ($Manifest.app_version -ne $AppVersion -or $Manifest.platform -ne "windows-x64") { throw "This runtime pack does not match erase-it $AppVersion for Windows x64." }
     foreach ($Entry in $Manifest.files.PSObject.Properties) {
