@@ -74,7 +74,11 @@ class DiskState(MutableMapping):
         if key not in self.keys_present:
             raise KeyError(key)
         if key not in self.cache:
-            self.cache[key] = torch.load(self.directory / f"{key}.pt", map_location="cpu", weights_only=True)
+            # SAM 2 offloads large masks/features to CPU but keeps object pointers
+            # and other small tensors on the compute device. Preserve that mix
+            # when restoring this job's state; forcing everything to CPU breaks
+            # CUDA memory attention once the LRU starts evicting older frames.
+            self.cache[key] = torch.load(self.directory / f"{key}.pt", weights_only=True)
         self.cache.move_to_end(key)
         self._trim()
         return self.cache[key]
