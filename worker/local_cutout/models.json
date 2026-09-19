@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "sam2_revision": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+  "models": [
+    {
+      "id": "tiny", "name": "SAM 2.1 Tiny", "description": "Fast · recommended",
+      "config": "configs/sam2.1/sam2.1_hiera_t.yaml",
+      "filename": "sam2.1_hiera_tiny.pt", "size": 156008466,
+      "sha256": "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69",
+      "url": "https://huggingface.co/facebook/sam2.1-hiera-tiny/resolve/de431c4043854a71d8101e17995dfe596bf101a5/sam2.1_hiera_tiny.pt",
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "base_plus", "name": "SAM 2.1 Base+", "description": "Quality · more memory",
+      "config": "configs/sam2.1/sam2.1_hiera_b+.yaml",
+      "filename": "sam2.1_hiera_base_plus.pt", "size": 323606802,
+      "sha256": "a2345aede8715ab1d5d31b4a509fb160c5a4af1970f199d9054ccfb746c004c5",
+      "url": "https://huggingface.co/facebook/sam2.1-hiera-base-plus/resolve/b7320756a13354e7530a63935656d35b2f91a290/sam2.1_hiera_base_plus.pt",
+      "license": "Apache-2.0"
+    }
+  ]
+}
