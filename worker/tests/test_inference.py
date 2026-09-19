@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
-from local_cutout.inference import DiskState, Engine, LazyFrames
-from local_cutout.models import Models
-from local_cutout.project import Project
+from erase_it.inference import DiskState, Engine, LazyFrames
+from erase_it.models import Models
+from erase_it.project import Project
 
 
 def test_spilled_state_retains_in_place_mutations(tmp_path):
@@ -25,9 +25,9 @@ def test_spilled_state_retains_in_place_mutations(tmp_path):
 @pytest.mark.inference
 def test_real_sam2_cpu_selection_and_bidirectional_tracking(tmp_path, job):
     pytest.importorskip("sam2")
-    models = Models(Path(os.environ.get("LOCAL_CUTOUT_TEST_MODELS", ".cache/inference")))
+    models = Models(Path(os.environ.get("ERASE_IT_TEST_MODELS", ".cache/inference")))
     if not models.path("tiny").exists():
-        pytest.skip("Download Tiny and set LOCAL_CUTOUT_TEST_MODELS for the real inference test")
+        pytest.skip("Download Tiny and set ERASE_IT_TEST_MODELS for the real inference test")
     source = tmp_path / "source.placeholder"
     source.write_bytes(b"test frames generated below")
     project = Project.create(tmp_path, source, {"width": 256, "height": 160, "fps_num": 3, "fps_den": 1,

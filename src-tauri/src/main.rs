@@ -22,7 +22,7 @@ fn worker_command(app: &tauri::AppHandle, data: &Path) -> Result<Command, String
     let mut command;
     if cfg!(debug_assertions) {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-        let python = std::env::var_os("LOCAL_CUTOUT_PYTHON")
+        let python = std::env::var_os("ERASE_IT_PYTHON")
             .map(PathBuf::from)
             .unwrap_or_else(|| {
                 root.join(if cfg!(windows) {
@@ -35,26 +35,24 @@ fn worker_command(app: &tauri::AppHandle, data: &Path) -> Result<Command, String
             return Err("Processing runtime is missing. Run scripts/setup-worker.py first.".into());
         }
         command = Command::new(python);
-        command.arg("-m").arg("local_cutout").current_dir(root);
+        command.arg("-m").arg("erase_it").current_dir(root);
     } else {
         let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
-        let default_worker = resources.join("worker/local-cutout-worker.exe");
+        let default_worker = resources.join("worker/erase-it-worker.exe");
         // GPU packs are installed explicitly under app data. Validate their pinned checksum
         // manifest in install-nvidia.ps1 before atomically publishing this directory.
-        let gpu_worker = data.join("runtimes/nvidia/local-cutout-worker.exe");
+        let gpu_worker = data.join("runtimes/nvidia/erase-it-worker.exe");
         let worker = if gpu_worker.is_file() {
             gpu_worker
         } else {
             default_worker
         };
         if !worker.is_file() {
-            return Err(
-                "The bundled processing runtime is missing. Reinstall Local Cutout.".into(),
-            );
+            return Err("The bundled processing runtime is missing. Reinstall erase-it.".into());
         }
         command = Command::new(worker);
-        command.env("LOCAL_CUTOUT_FFMPEG", resources.join("media/ffmpeg.exe"));
-        command.env("LOCAL_CUTOUT_FFPROBE", resources.join("media/ffprobe.exe"));
+        command.env("ERASE_IT_FFMPEG", resources.join("media/ffmpeg.exe"));
+        command.env("ERASE_IT_FFPROBE", resources.join("media/ffprobe.exe"));
     }
     command
         .arg("--data-dir")
@@ -149,7 +147,7 @@ fn main() {
         .manage(WorkerHost::default())
         .invoke_handler(tauri::generate_handler![worker_request])
         .build(tauri::generate_context!())
-        .expect("Could not start Local Cutout")
+        .expect("Could not start erase-it")
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
                 if let Ok(mut worker) = app.state::<WorkerHost>().0.lock() {

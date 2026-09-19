@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from . import __version__
 from .errors import CutoutError
 from .jobs import Job
 
@@ -60,7 +61,7 @@ class Models:
         if offset >= model["size"]:
             partial.unlink()
             offset = 0
-        headers = {"User-Agent": "LocalCutout/0.1"}
+        headers = {"User-Agent": f"erase-it/{__version__}"}
         if offset:
             headers["Range"] = f"bytes={offset}-"
         try:

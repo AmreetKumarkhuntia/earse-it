@@ -16,10 +16,10 @@ from .jobs import Job
 
 
 def binary(name: str) -> str:
-    override = os.environ.get(f"LOCAL_CUTOUT_{name.upper()}")
+    override = os.environ.get(f"ERASE_IT_{name.upper()}")
     found = override or shutil.which(name)
     if not found or not Path(found).is_file():
-        raise CutoutError("MEDIA_TOOLS_MISSING", f"{name} is unavailable. Reinstall the media tools, or set LOCAL_CUTOUT_{name.upper()} for development.")
+        raise CutoutError("MEDIA_TOOLS_MISSING", f"{name} is unavailable. Reinstall the media tools, or set ERASE_IT_{name.upper()} for development.")
     return found
 
 

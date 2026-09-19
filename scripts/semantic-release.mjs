@@ -1,0 +1,29 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { analyzeCommits as analyzeConventionalCommits } from '@semantic-release/commit-analyzer';
+import { headMessage, isReleaseCommit } from './release-trigger.mjs';
+
+export async function analyzeCommits(_config, context) {
+  // Check HEAD, not any older chore in the unreleased commit history.
+  if (!isReleaseCommit(headMessage(context.cwd))) {
+    context.logger.log('Only a chore commit at HEAD requests a release.');
+    return null;
+  }
+  return analyzeConventionalCommits({
+    preset: 'conventionalcommits',
+    releaseRules: [{ breaking: true, release: 'major' }, { type: 'chore', release: 'patch' }],
+  }, context);
+}
+
+export function prepare(_config, { cwd, nextRelease }) {
+  if (process.platform !== 'win32') {
+    throw new Error('Publish Windows installers from the Windows release workflow.');
+  }
+  execFileSync(join(cwd, '.venv', 'Scripts', 'python.exe'), [
+    'scripts/prepare-release.py', nextRelease.version,
+  ], { cwd, stdio: 'inherit' });
+  const changelog = join(cwd, 'CHANGELOG.md');
+  const previous = existsSync(changelog) ? readFileSync(changelog, 'utf8').replace(/^# Changelog\s*/, '') : '';
+  writeFileSync(changelog, `# Changelog\n\n${nextRelease.notes.trim()}\n\n${previous}`);
+}

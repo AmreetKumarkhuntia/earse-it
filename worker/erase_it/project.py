@@ -134,7 +134,7 @@ class Project:
         except FileNotFoundError:
             raise CutoutError("SOURCE_MISSING", "The project or its original video cannot be found. Restore it to its original location.")
         except (KeyError, TypeError, ValueError):
-            raise CutoutError("INVALID_PROJECT", "This is not a valid Local Cutout project.")
+            raise CutoutError("INVALID_PROJECT", "This is not a valid erase-it project.")
 
     @property
     def frames_dir(self):

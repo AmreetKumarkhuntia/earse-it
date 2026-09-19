@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from local_cutout.jobs import Job
-from local_cutout.media import binary, prepare, probe
-from local_cutout.project import Project
+from erase_it.jobs import Job
+from erase_it.media import binary, prepare, probe
+from erase_it.project import Project
 
 
 @pytest.fixture

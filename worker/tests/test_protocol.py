@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 def test_worker_accepts_utf8_paths_under_a_legacy_windows_code_page(video, tmp_path):
     process = subprocess.Popen(
-        [sys.executable, "-m", "local_cutout", "--data-dir", str(tmp_path / "data")],
+        [sys.executable, "-m", "erase_it", "--data-dir", str(tmp_path / "data")],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         env={**os.environ, "PYTHONIOENCODING": "cp1252"},
     )

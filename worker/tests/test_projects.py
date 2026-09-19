@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from local_cutout.errors import CutoutError
-from local_cutout.project import Project, ranges, validate_prompts
+from erase_it.errors import CutoutError
+from erase_it.project import Project, ranges, validate_prompts
 
 
 @pytest.mark.parametrize("point", [[float("nan"), .5, 1], [.5, 2, 1], [.5, .5, 3], [.5, .5, True], [0, 0, 1.0]])

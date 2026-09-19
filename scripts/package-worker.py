@@ -17,12 +17,12 @@ def main():
     build = ROOT / ".cache" / f"package-{args.device}"
     build.mkdir(parents=True, exist_ok=True)
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir",
-                    "--name", "local-cutout-worker", "--distpath", str(build / "dist"),
+                    "--name", "erase-it-worker", "--distpath", str(build / "dist"),
                     "--workpath", str(build / "work"), "--specpath", str(build),
                     "--collect-all", "sam2", "--collect-all", "hydra", "--collect-all", "omegaconf",
-                    "--collect-data", "local_cutout", "--copy-metadata", "local-cutout-worker",
+                    "--collect-data", "erase_it", "--copy-metadata", "erase-it-worker",
                     str(ROOT / "worker/entrypoint.py")], check=True)
-    bundle = build / "dist/local-cutout-worker"
+    bundle = build / "dist/erase-it-worker"
     licenses = bundle / "licenses"
     licenses.mkdir(exist_ok=True)
     inventory = []
@@ -37,7 +37,7 @@ def main():
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, destination)
     shutil.copy2(ROOT / "licenses/SAM2-LICENSE", licenses / "SAM2-LICENSE")
-    shutil.copy2(ROOT / "LICENSE", licenses / "LOCAL-CUTOUT-LICENSE")
+    shutil.copy2(ROOT / "LICENSE", licenses / "ERASE-IT-LICENSE")
     (licenses / "python-dependencies.json").write_text(json.dumps(inventory, indent=2))
     if args.device == "cpu":
         target = ROOT / "src-tauri/resources/worker"
@@ -49,7 +49,7 @@ def main():
         files = {p.relative_to(bundle).as_posix(): hashlib.file_digest(p.open("rb"), "sha256").hexdigest()
                  for p in bundle.rglob("*") if p.is_file()}
         (bundle / "runtime-manifest.json").write_text(json.dumps({"app_version": version, "platform": "windows-x64", "files": files}, indent=2))
-        archive = ROOT / f"dist/local-cutout-nvidia-{version}-windows-x64"
+        archive = ROOT / f"dist/erase-it-nvidia-{version}-windows-x64"
         archive.parent.mkdir(exist_ok=True)
         result = Path(shutil.make_archive(str(archive), "zip", bundle))
         with result.open("rb") as stream:

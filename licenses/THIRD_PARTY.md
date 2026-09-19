@@ -1,6 +1,6 @@
 # Third-party components
 
-Local Cutout original source is Apache-2.0. Dependencies retain their own licenses.
+erase-it original source is Apache-2.0. Dependencies retain their own licenses.
 
 | Component | License | Source |
 | --- | --- | --- |

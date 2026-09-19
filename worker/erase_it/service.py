@@ -2,6 +2,7 @@ import json
 import shutil
 from pathlib import Path
 
+from . import __version__
 from .errors import CutoutError
 from .export import export
 from .inference import Engine
@@ -45,7 +46,7 @@ class Service:
             last = json.loads((self.root / "last-project.json").read_text())["path"]
         except (OSError, KeyError, ValueError):
             pass
-        return {"protocol": 1, "version": "0.1.0", "models": self.models.list(),
+        return {"protocol": 1, "version": __version__, "models": self.models.list(),
                 "capabilities": {**capabilities(), "media_ready": media_ready},
                 "last_project": last, "data_directory": str(self.root)}
 

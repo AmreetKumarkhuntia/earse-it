@@ -1,5 +1,5 @@
 [package]
-name = "local-cutout"
+name = "erase-it"
 version = "0.1.0"
 description = "Local video masking and background removal"
 edition = "2021"

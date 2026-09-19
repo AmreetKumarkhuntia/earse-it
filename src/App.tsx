@@ -4,6 +4,7 @@ import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, BoxSelect, Check,
 import { asset, cancel, desktop, request, subscribe, WorkerError } from './bridge';
 import { appendPoint, clamp, coveredFrames, imageRect, makeBox, normalizePoint, timecode } from './geometry';
 import type { Box, Edge, FrameResult, Hello, Model, Point, PreviewMode, Progress, Project, Prompts, Tool } from './types';
+import { version as appVersion } from '../package.json';
 
 const MODES: PreviewMode[] = ['overlay', 'cutout', 'mask', 'original'];
 const EMPTY_PROMPT = { points: [] as Point[], box: null as Box | null };
@@ -114,7 +115,7 @@ export function App() {
   };
 
   const importVideo = async () => {
-    if (!desktop) { error(new Error('Open Local Cutout on your desktop to import and process videos.')); return; }
+    if (!desktop) { error(new Error('Open erase-it on your desktop to import and process videos.')); return; }
     try {
       const path = await open({ title: 'Import a video', multiple: false, filters: [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'] }] });
       if (typeof path === 'string') {
@@ -126,7 +127,7 @@ export function App() {
 
   const openProject = async (existing?: string) => {
     try {
-      const path = existing ?? await open({ title: 'Open a project', multiple: false, filters: [{ name: 'Local Cutout project', extensions: ['cutout'] }] });
+      const path = existing ?? await open({ title: 'Open a project', multiple: false, filters: [{ name: 'erase-it project', extensions: ['cutout'] }] });
       if (typeof path === 'string') acceptProject(await run<Project>('open_project', { path }), true);
     } catch (value) { error(value); }
   };
@@ -134,7 +135,7 @@ export function App() {
   const saveProject = async () => {
     if (!project) return;
     try {
-      const path = project.project_file ?? await save({ defaultPath: `${project.name}.cutout`, filters: [{ name: 'Local Cutout project', extensions: ['cutout'] }] });
+      const path = project.project_file ?? await save({ defaultPath: `${project.name}.cutout`, filters: [{ name: 'erase-it project', extensions: ['cutout'] }] });
       if (path) {
         const saved = await run<Project>('save_project', { path });
         acceptProject(saved);
@@ -250,7 +251,7 @@ export function App() {
 
   return <div className="app">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><Scissors size={21} strokeWidth={2} /></span><span>local<span className="brand-light">cutout</span><span className="version">BETA</span></span></div>
+      <div className="brand"><span className="brand-mark"><Scissors size={21} strokeWidth={2} /></span><span>erase<span className="brand-light">-it</span><span className="version">BETA</span></span></div>
       <div className="workspace-label"><span className="tiny-dot" /> VIDEO WORKSPACE</div>
       <div className="top-actions"><span className="local-badge"><ShieldCheck size={14} /> Stays on your device</span><button className="icon-button" title="Help and keyboard shortcuts" aria-label="Help" onClick={() => setHelp(true)}><CircleHelp size={19} /></button></div>
     </header>
@@ -322,7 +323,7 @@ export function App() {
         <div className="right-footer"><Layers2 size={17} /><p>A small tool for<br /><strong>your next big idea.</strong></p></div>
       </aside>
     </div>
-    <footer className="statusbar"><span><span className="tiny-dot" />{busy ? progress?.stage ?? 'Working' : desktop ? hello ? 'Ready' : 'Starting processing runtime…' : 'Desktop interface preview'}<span className="status-separator">/</span>{project ? project.name : 'No project open'}</span><span>{project ? 'Changes saved locally' : 'Free & open source'}<span className="status-separator">/</span>v0.1.0</span></footer>
+    <footer className="statusbar"><span><span className="tiny-dot" />{busy ? progress?.stage ?? 'Working' : desktop ? hello ? 'Ready' : 'Starting processing runtime…' : 'Desktop interface preview'}<span className="status-separator">/</span>{project ? project.name : 'No project open'}</span><span>{project ? 'Changes saved locally' : 'Free & open source'}<span className="status-separator">/</span>v{appVersion}</span></footer>
     {notice && <div className={`notice ${notice.error ? 'error' : ''}`} role={notice.error ? 'alert' : 'status'}>{notice.error ? <CircleHelp size={19} /> : <Check size={19} />}<p>{notice.message}</p><button aria-label="Dismiss message" onClick={() => setNotice(null)}><X size={17} /></button></div>}
     {help && <div className="modal-backdrop" onClick={() => setHelp(false)}><div className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={event => event.stopPropagation()}><button className="modal-close icon-button" aria-label="Close help" onClick={() => setHelp(false)}><X size={20} /></button><span className="eyebrow">A QUICK START</span><h2 id="help-title">A subject. A few strokes.<br />A new possibility.</h2><ol><li><strong>Import</strong> a short SDR video. Choose a frame where your subject is clearly visible.</li><li><strong>Select</strong> with Keep strokes or a box. Remove strokes exclude unwanted areas.</li><li><strong>Track both ways.</strong> Add correction strokes on difficult frames, then retrack from a selection frame.</li><li><strong>Export</strong> a transparent MOV or a mask sequence at the original resolution.</li></ol><p>Masked playback is a frame-by-frame review and may run below real time. Use Original for normal video playback with audio.</p><div className="keyboard-help"><span><kbd>1</kbd> Keep</span><span><kbd>2</kbd> Remove</span><span><kbd>B</kbd> Box</span><span><kbd>← →</kbd> Step</span><span><kbd>Space</kbd> Play</span></div><p className="hint">In Resolve, set the MOV alpha mode to Straight if needed. Import PNG masks as a sequence at the frame rate in timing.json. A .cutout project references your original video; keep that file in place.</p></div></div>}
   </div>;

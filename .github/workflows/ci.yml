@@ -9,63 +9,37 @@ permissions:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.trigger.outputs.release }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-  windows:
-    runs-on: windows-latest
-    timeout-minutes: 40
-    env:
-      SAM2_BUILD_CUDA: '0'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
+      - id: trigger
+        name: Check whether the pushed commit requests a release
+        run: node scripts/release-trigger.mjs
       - run: npm ci
-      - run: python scripts/setup-worker.py
-      - run: python scripts/prepare-media.py
-      - name: Set media tool paths
-        shell: pwsh
-        run: |
-          "LOCAL_CUTOUT_FFMPEG=$pwd/src-tauri/resources/media/ffmpeg.exe" >> $env:GITHUB_ENV
-          "LOCAL_CUTOUT_FFPROBE=$pwd/src-tauri/resources/media/ffprobe.exe" >> $env:GITHUB_ENV
-      - run: .venv/Scripts/python -m pytest worker/tests -m "not inference" -q
-      - run: .venv/Scripts/python -m local_cutout --data-dir .cache/inference --download-model tiny
-      - name: Test real CPU inference
-        shell: pwsh
-        run: |
-          $env:LOCAL_CUTOUT_TEST_MODELS = "$pwd/.cache/inference"
-          .venv/Scripts/python -m pytest worker/tests -m inference -q
-      - run: .venv/Scripts/python scripts/package-worker.py
-      - name: Verify frozen runtime
-        run: .venv/Scripts/python scripts/check-frozen-worker.py
-      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-      - run: npm run desktop:build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: local-cutout-windows-x64
-          path: src-tauri/target/release/bundle/nsis/*.exe
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: third-party-sources-and-notices
-          path: |
-            artifacts/third-party-sources/
-            licenses/
-            src-tauri/resources/media/upstream/
-            src-tauri/resources/worker/licenses/
+      - run: npm test
+      - run: npm run test:release
+      - run: python -m unittest discover -s scripts -p 'test_release.py' -v
+      - run: npm run build
+  windows:
+    needs: frontend
+    if: needs.frontend.outputs.release != 'true'
+    uses: ./.github/workflows/windows.yml
+  release:
+    needs: frontend
+    if: needs.frontend.outputs.release == 'true'
+    permissions:
+      contents: write
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    uses: ./.github/workflows/windows.yml
+    with:
+      release: true

@@ -17,7 +17,7 @@ test('browser preview explains local processing and exposes help', async ({ page
 });
 
 test('real CPU worker: import, select, track, correct, undo, save, export', async ({ page }) => {
-  test.skip(process.env.LOCAL_CUTOUT_E2E !== '1', 'Requires local Python runtime and downloaded Tiny model');
+  test.skip(process.env.ERASE_IT_E2E !== '1', 'Requires local Python runtime and downloaded Tiny model');
   const root = process.cwd();
   const directory = path.join(root, '.cache/e2e', crypto.randomUUID());
   const python = path.join(root, process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python');
@@ -26,8 +26,8 @@ test('real CPU worker: import, select, track, correct, undo, save, export', asyn
   const projectFile = path.join(directory, 'subject.cutout');
   await mkdir(path.join(directory, 'models'), { recursive: true });
   await copyFile(path.join(root, '.cache/inference/models/sam2.1_hiera_tiny.pt'), path.join(directory, 'models/sam2.1_hiera_tiny.pt'));
-  execFileSync(process.env.LOCAL_CUTOUT_FFMPEG ?? 'ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=0x202e3a:s=256x160:r=3:d=1', '-vf', 'drawbox=x=75:y=35:w=100:h=95:color=0xd7a028:t=fill', '-c:v', 'ffv1', source]);
-  const child = spawn(python, ['-m', 'local_cutout', '--data-dir', directory], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] });
+  execFileSync(process.env.ERASE_IT_FFMPEG ?? 'ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=0x202e3a:s=256x160:r=3:d=1', '-vf', 'drawbox=x=75:y=35:w=100:h=95:color=0xd7a028:t=fill', '-c:v', 'ffv1', source]);
+  const child = spawn(python, ['-m', 'erase_it', '--data-dir', directory], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] });
   let handler = 0;
   let stderr = '';
   child.stderr.on('data', value => { stderr += value.toString(); });

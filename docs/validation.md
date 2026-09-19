@@ -10,6 +10,14 @@ The Windows workflow tests the worker, packages it with PyInstaller, verifies th
 the frozen runtime imports PyTorch/SAM 2, checks Rust formatting, and builds an NSIS
 installer. The optional NVIDIA runtime workflow builds the CUDA pack separately.
 
+Release tests verify that only a pushed `chore:` HEAD on `main` requests publishing,
+that earlier features/breaking changes determine the version bump, and that the
+generated `[skip ci]` commit cannot trigger a release loop. Temporary packaging
+fixtures check version consistency, source/notice coverage, installer selection,
+and SHA-256 checksums. A release is built after versioning, then semantic-release
+pushes the version commit and tag and uploads its assets. These local tests do not
+exercise GitHub authentication, repository rules, or installation on Windows.
+
 During initial implementation, the Linux environment passed real SAM 2.1 Tiny CPU
 selection and bidirectional tracking, an actual 4K alpha export, frontend type/build
 checks, the Rust host type check, and frozen-runtime construction of the Tiny model.

@@ -16,7 +16,7 @@ jobs:
       - run: .venv-cuda/Scripts/python scripts/package-worker.py --device cuda
       - uses: actions/upload-artifact@v4
         with:
-          name: local-cutout-nvidia-windows-x64
+          name: erase-it-nvidia-windows-x64
           path: |
             dist/*.zip
             dist/*.sha256

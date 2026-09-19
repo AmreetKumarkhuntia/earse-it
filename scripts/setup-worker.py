@@ -27,14 +27,14 @@ def main():
     index = "https://download.pytorch.org/whl/" + ("cpu" if args.device == "cpu" else "cu128")
     install("torch==2.7.1", "torchvision==0.22.1", "--index-url", index)
     install("hydra-core==1.3.2", "iopath==0.1.10", "tqdm==4.67.1")
-    manifest = json.loads((ROOT / "worker/local_cutout/models.json").read_text())
+    manifest = json.loads((ROOT / "worker/erase_it/models.json").read_text())
     install("--no-deps", "--no-build-isolation", f"https://github.com/facebookresearch/sam2/archive/{manifest['sam2_revision']}.zip")
     install("-e", str(ROOT / "worker") + "[test,build]")
     for folder in ("worker", "media"):
         (ROOT / "src-tauri/resources" / folder).mkdir(parents=True, exist_ok=True)
     print(f"Ready: {python}")
     if args.device == "cuda":
-        print("For desktop development, set LOCAL_CUTOUT_PYTHON to this Python executable.")
+        print("For desktop development, set ERASE_IT_PYTHON to this Python executable.")
 
 
 if __name__ == "__main__":

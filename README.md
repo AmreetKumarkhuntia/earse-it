@@ -1,4 +1,4 @@
-# Local Cutout
+# erase-it
 
 A small, open-source Windows app for selecting a video subject, tracking it across
 frames, and exporting a transparent cutout or mask for your editor. Repository:
@@ -28,10 +28,16 @@ frame-by-frame review and may run below real time; Original plays the proxy with
 
 ## Windows installation
 
-The **Verify and build Windows app** GitHub Actions workflow creates an unsigned
-Windows x64 NSIS installer as the `local-cutout-windows-x64` artifact. No public
-release or code-signing certificate is configured. Download the artifact from a
-successful workflow run and run the enclosed installer. Python and FFmpeg are bundled.
+Download the Windows x64 `erase-it-VERSION-windows-x64-setup.exe` from
+[GitHub Releases](https://github.com/AmreetKumarkhuntia/earse-it/releases/latest)
+and run it. Installers are unsigned; Python and FFmpeg are bundled. Each release
+also includes `SHA256SUMS` and a companion third-party source and notice ZIP.
+The installer can download WebView2 if it is missing, so initial installation may
+need an internet connection.
+
+Development installers are available as the `erase-it-windows-x64` artifact
+from successful **Verify and build Windows app** workflow runs. Before the first
+automated release, use this artifact download.
 
 On first use, download the 156 MB Tiny model in **Processing**. Base+ is an optional
 324 MB download. Those sizes exclude the packaged inference runtime. Once downloaded,
@@ -43,17 +49,19 @@ runtime pack. Download its ZIP, matching `.zip.sha256`, and `install-nvidia.ps1`
 the same successful build. Close the app, then run in PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\install-nvidia.ps1 -Archive .\local-cutout-nvidia-0.1.0-windows-x64.zip
+powershell -ExecutionPolicy Bypass -File .\install-nvidia.ps1 -Archive .\erase-it-nvidia-VERSION-windows-x64.zip
 ```
 
-The script verifies checksums and installs under the current user's app data.
+Replace `VERSION` with your installed app version, and run the NVIDIA workflow
+against its matching release tag. The script verifies checksums and installs under
+the current user's app data.
 The NVIDIA driver must support the bundled CUDA 12.8 runtime. If unavailable, Auto
 uses CPU. To remove the pack, close the app and delete only the `runtimes\nvidia`
-folder under `%APPDATA%\io.github.amreetkumarkhuntia.earseit`.
+folder under `%APPDATA%\io.github.amreetkumarkhuntia.eraseit`.
 
 ## Development
 
-Use **Windows x64, Node 22+, Python 3.12, stable Rust with the MSVC toolchain,
+Use **Windows x64, Node 24.15+, Python 3.12, stable Rust with the MSVC toolchain,
 Microsoft C++ Build Tools, and WebView2**. No WSL or CUDA compiler is required.
 
 ```powershell
@@ -62,13 +70,13 @@ cd earse-it
 npm ci
 py -3.12 scripts/setup-worker.py
 py -3.12 scripts/prepare-media.py
-$env:LOCAL_CUTOUT_FFMPEG = "$pwd\src-tauri\resources\media\ffmpeg.exe"
-$env:LOCAL_CUTOUT_FFPROBE = "$pwd\src-tauri\resources\media\ffprobe.exe"
+$env:ERASE_IT_FFMPEG = "$pwd\src-tauri\resources\media\ffmpeg.exe"
+$env:ERASE_IT_FFPROBE = "$pwd\src-tauri\resources\media\ffprobe.exe"
 npm run desktop:dev
 ```
 
 For GPU development, run `py -3.12 scripts/setup-worker.py --device cuda` and set
-`LOCAL_CUTOUT_PYTHON` to `.venv-cuda\Scripts\python.exe` using an absolute path.
+`ERASE_IT_PYTHON` to `.venv-cuda\Scripts\python.exe` using an absolute path.
 The CPU development environment remains separate.
 
 `npm run dev` previews the interface in a browser. Processing and native file
@@ -79,8 +87,8 @@ developed/tested on Linux with system FFmpeg; Linux desktop distribution is defe
 npm test
 npm run build
 .venv/Scripts/python -m pytest worker/tests -m "not inference" -q
-.venv/Scripts/python -m local_cutout --data-dir .cache/inference --download-model tiny
-$env:LOCAL_CUTOUT_TEST_MODELS = "$pwd\.cache\inference"
+.venv/Scripts/python -m erase_it --data-dir .cache/inference --download-model tiny
+$env:ERASE_IT_TEST_MODELS = "$pwd\.cache\inference"
 .venv/Scripts/python -m pytest worker/tests -m inference -q
 ```
 
@@ -96,6 +104,56 @@ Run `scripts/prepare-media.py` before bundling; it pins and verifies the Windows
 LGPL FFmpeg build, records provenance, and downloads FFmpeg source/build archives.
 Installer output is under `src-tauri/target/release/bundle/nsis/`. Publish the
 companion source and notice artifact alongside any redistributed installer.
+
+## Automated releases
+
+Push to `main` with a Conventional Commit subject beginning with `chore:` or
+`chore(scope):` to request a release. For example, after committing your changes:
+
+```sh
+git commit --allow-empty -m "chore(release): publish Windows installer"
+git push origin main
+```
+
+Only the pushed HEAD commit is checked. With squash merging, use a `chore:` subject
+for the squash commit when requesting a release. Other commit types, pull requests,
+and manual workflow runs build and test without publishing. Add `[skip release]`
+to a chore commit to run CI without requesting a release.
+
+After frontend tests, worker tests, real CPU inference, and Rust formatting pass,
+semantic-release calculates the version from all commits since the last release:
+`fix:` and ordinary `chore:` changes give a patch, `feat:` gives a minor, and `!`
+or a `BREAKING CHANGE:` footer gives a major. A feature or fix waits for a subsequent
+chore commit to trigger publishing. With no existing version tag, semantic-release
+starts at **1.0.0**.
+
+The workflow updates the npm, Tauri, Rust, and Python versions and the optional
+NVIDIA installer version, then packages and checks the frozen worker and builds
+the Windows installer. It commits these versions and `CHANGELOG.md` as
+`chore(release): VERSION [skip ci]`, pushes that commit and `vVERSION`, and publishes
+the installer, sources/notices ZIP, and checksums to GitHub Releases. Pull the
+generated commit before your next push. Release builds run serially; if `main`
+has advanced before semantic-release starts, it skips the stale run. Use another
+chore commit to request a release of the latest changes in that case.
+
+Publishing uses the workflow's built-in `GITHUB_TOKEN` with `contents: write` only
+for the release job. No npm publishing token or personal access token is needed.
+Repository branch/tag rules must allow that job to push the release commit and
+version tag. The generated commit skips CI; installer publishing happens in the
+same workflow and does not depend on a second workflow triggered by the bot's tag.
+
+If building fails, no release commit or tag is pushed. If GitHub uploading fails
+after tagging, the workflow retains `erase-it-release-files` as an Actions
+artifact. Create or recover a draft release for the existing tag, upload the files
+from that run, and publish the draft; rerunning semantic-release will not rebuild
+an already tagged version. Published versions are not overwritten.
+
+Release logic checks (no publishing):
+
+```sh
+npm run test:release
+python -m unittest discover -s scripts -p 'test_release.py' -v
+```
 
 ## Editor workflow
 
@@ -121,7 +179,7 @@ source dimensions and handles rotation. Only the first audio stream is included.
 ## Project layout
 
 `src/` contains the React editor and typed worker bridge; `src-tauri/` owns native
-dialogs, process lifetime, and scoped access to preview files; `worker/local_cutout/`
+dialogs, process lifetime, and scoped access to preview files; `worker/erase_it/`
 owns project data, media processing, model management, and SAM 2 inference.
 
 Project caches live in the OS application data folder. `.cutout` saves are references,

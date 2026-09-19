@@ -25,5 +25,5 @@ supports broad Windows hardware but is in sustained engineering; broader GPU sup
 requires a tested full-video conversion path.
 
 SAM 2.1 source revision and SHA-256-pinned official checkpoint URLs are recorded in
-`worker/local_cutout/models.json`. Both code and checkpoint releases were verified
+`worker/erase_it/models.json`. Both code and checkpoint releases were verified
 against upstream metadata. Downloads are not arbitrary user-supplied model code.

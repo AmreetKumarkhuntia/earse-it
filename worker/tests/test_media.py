@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from local_cutout.errors import Cancelled, CutoutError
-from local_cutout.export import export
-from local_cutout.masks import refine, save_image
-from local_cutout.media import binary, original_frames, prepare
-from local_cutout.media import probe
-from local_cutout.project import Project
+from erase_it.errors import Cancelled, CutoutError
+from erase_it.export import export
+from erase_it.masks import refine, save_image
+from erase_it.media import binary, original_frames, prepare
+from erase_it.media import probe
+from erase_it.project import Project
 
 
 def fill_masks(project):
