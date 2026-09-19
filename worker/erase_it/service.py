@@ -11,6 +11,7 @@ from .masks import render_frame
 from .media import binary, prepare, probe
 from .models import Models, capabilities
 from .project import Project, integer, validate_edge, validate_prompts
+from .rendering import validate_render
 
 
 class Service:
@@ -98,6 +99,8 @@ class Service:
             changes["device"] = params["device"]
         if "edge" in params:
             changes["edge"] = validate_edge(params["edge"])
+        if "render" in params:
+            changes["render"] = validate_render(params["render"])
         count = data["media"]["frame_count"]
         start = integer(params.get("in_frame", data["in_frame"]), "In frame", 0, count - 1)
         end = integer(params.get("out_frame", data["out_frame"]), "Out frame", start, count - 1)
@@ -155,7 +158,8 @@ class Service:
         return self.models.download(params["model"], job)
 
     def export(self, params, job):
-        return export(self.current(), Path(params["path"]).expanduser().resolve(), params["format"], job)
+        return export(self.current(), Path(params["path"]).expanduser().resolve(), params["format"], job,
+                      options=params.get("options"))
 
     def dispatch(self, action: str, params: dict, job: Job):
         methods = {name: getattr(self, name) for name in (

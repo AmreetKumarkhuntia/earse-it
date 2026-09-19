@@ -7,8 +7,10 @@ import type { Box, Edge, FrameResult, Hello, Model, Point, PreviewMode, Progress
 import { version as appVersion } from '../package.json';
 import { QuickGuide, type GuidePage } from './QuickGuide';
 import { processingStatus } from './processing';
+import { RenderPanel } from './RenderPanel';
+import { changeRender, DEFAULT_RENDER, exportName } from './rendering';
 
-const MODES: PreviewMode[] = ['overlay', 'cutout', 'mask', 'original'];
+const MODES: PreviewMode[] = ['overlay', 'cutout', 'render', 'mask', 'original'];
 const EMPTY_PROMPT = { points: [] as Point[], box: null as Box | null };
 
 function SelectionArt() {
@@ -40,7 +42,6 @@ export function App() {
   const [history, setHistory] = useState<{ past: Prompts[]; future: Prompts[] }>({ past: [], future: [] });
   const [stroke, setStroke] = useState<Point[]>([]);
   const [boxDraft, setBoxDraft] = useState<Box | null>(null);
-  const [format, setFormat] = useState<'prores' | 'mask_sequence'>('prores');
   const [playing, setPlaying] = useState(false);
   const [help, setHelp] = useState<GuidePage | null>(null);
   const [importOptions, setImportOptions] = useState(false);
@@ -52,6 +53,7 @@ export function App() {
   const projectRef = useRef(project); projectRef.current = project;
   const frameRef = useRef(frame); frameRef.current = frame;
   const busyRef = useRef(busy); busyRef.current = busy;
+  const render = project?.render ?? DEFAULT_RENDER;
   const error = useCallback((value: unknown) => {
     if (value instanceof WorkerError && value.code === 'CANCELLED') setNotice({ message: value.message, error: false });
     else setNotice({ message: value instanceof Error ? value.message : String(value), error: true });
@@ -213,12 +215,12 @@ export function App() {
     if (!project) return;
     try {
       let path: string | null;
-      if (format === 'prores') path = await save({ defaultPath: `${project.name}-cutout.mov`, filters: [{ name: 'ProRes 4444', extensions: ['mov'] }] });
+      if (render.format === 'prores' || render.format === 'mp4') path = await save({ defaultPath: exportName(project.name, render), filters: [{ name: render.format === 'prores' ? 'ProRes 4444' : 'H.264 video', extensions: [render.format === 'prores' ? 'mov' : 'mp4'] }] });
       else {
-        path = await save({ title: 'Name a new folder for the PNG masks', defaultPath: `${project.name}-masks` });
+        path = await save({ title: 'Name a new folder for the PNG sequence', defaultPath: exportName(project.name, render) });
       }
       if (!path) return;
-      const result = await run<{ path: string }>('export', { path, format });
+      const result = await run<{ path: string }>('export', { path, format: render.format, options: render });
       if (result) setNotice({ message: `Export saved to ${result.path}`, error: false });
     } catch (value) { error(value); }
   };
@@ -283,7 +285,7 @@ export function App() {
 
       <main className="main-panel">
         <div className="viewer-toolbar"><div className="clip-title"><Film size={15} /><span>{project?.name ?? 'Untitled workspace'}</span></div><div className="view-switch" role="group" aria-label="Preview mode">{MODES.map(value => <button key={value} className={mode === value ? 'active' : ''} onClick={() => { setPlaying(false); setMode(value); }} disabled={!!busy}>{value}</button>)}</div></div>
-        <div ref={viewer} className={`viewer ${project ? 'has-video' : ''} ${mode === 'cutout' ? 'checkerboard' : ''}`} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drawing.current = null; setStroke([]); setBoxDraft(null); }}>
+        <div ref={viewer} className={`viewer ${project ? 'has-video' : ''} ${mode === 'cutout' || (mode === 'render' && render.background === 'transparent' && render.format !== 'mask_sequence') ? 'checkerboard' : ''}`} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drawing.current = null; setStroke([]); setBoxDraft(null); }}>
           {!project ? <div className="empty-state"><span className="eyebrow">LESS BACKGROUND. MORE POSSIBILITY.</span><SelectionArt /><h1>Make your subject<br /><em>the whole story.</em></h1><p>Isolate a person, a car, or anything in between.<br />Select it. Track it. Take it to your editor.</p><button className="primary" disabled={!!busy} onPointerDown={event => event.stopPropagation()} onClick={() => void importVideo()}><Plus size={17} /> Import your video <ArrowUpRight size={17} /></button>{hello?.last_project && <button className="text-button reopen" onClick={() => void openProject(hello.last_project!)}>Reopen last project <ArrowRight size={13} /></button>}<span className="empty-footnote">Open source · No uploads · No subscriptions</span></div>
             : <>
               {mode === 'original' ? <video ref={video} src={asset(project.proxy)} className="source-video" onTimeUpdate={() => { if (playing && video.current) { const next = Math.floor(video.current.currentTime * fps); if (next >= project.out_frame) setPlaying(false); setFrame(clamp(next, 0, project.media.frame_count - 1)); } }} onEnded={() => setPlaying(false)} />
@@ -320,11 +322,9 @@ export function App() {
           <p className="hint">{processor.detail}</p>
           <button className="text-button" onClick={() => { setPlaying(false); setHelp('gpu'); }}>GPU setup & troubleshooting <ArrowUpRight size={12} /></button>
         </section>
-        <section className="export-section"><div className="section-label"><span>04</span> TAKE IT WITH YOU</div><label className="field">Export format<select value={format} onChange={event => setFormat(event.target.value as typeof format)} disabled={!!busy}><option value="prores">Transparent video · MOV</option><option value="mask_sequence">Mask sequence · PNG</option></select></label>
-          <div className="export-details"><div><span>Codec</span><strong>{format === 'prores' ? 'ProRes 4444' : '16-bit grayscale'}</strong></div><div><span>Resolution</span><strong>{project ? `${project.media.width} × ${project.media.height}` : 'Source resolution'}</strong></div><div><span>{format === 'prores' ? 'Audio' : 'Timing'}</span><strong>{format === 'prores' ? project?.media.has_audio ? 'Source audio' : 'No audio' : 'Included as JSON'}</strong></div></div>
-          <button className="primary export-button" disabled={!project || !!busy || completed !== selectedCount} onClick={() => void exportVideo()}><ArrowDownToLine size={17} /> Export {format === 'prores' ? 'cutout' : 'masks'}</button>
-          <span className="export-hint">{project && completed < selectedCount ? `${completed} of ${selectedCount} frames ready` : 'Ready for DaVinci Resolve & more'}</span>
-        </section>
+        <RenderPanel project={project} settings={render} busy={!!busy} completed={completed} selectedCount={selectedCount}
+          onChange={changes => void updateSettings({ render: changeRender(render, changes) })}
+          onExport={() => void exportVideo()} onPreview={() => { setPlaying(false); setMode('render'); }} onHelp={() => { setPlaying(false); setHelp('rendering'); }} />
         <div className="right-footer"><Layers2 size={17} /><p>A small tool for<br /><strong>your next big idea.</strong></p></div>
       </aside>
     </div>

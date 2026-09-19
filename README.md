@@ -14,8 +14,11 @@ are no accounts, cloud inference, usage fees, telemetry, or watermarks.
 - Forward/backward tracking, correction frames, undo/redo, in/out ranges, and cancellation.
 - Overlay, checkerboard cutout, grayscale mask, and original-video previews.
 - Feather, shrink/grow, and invert controls in source pixels.
-- Source-resolution ProRes 4444 MOV with straight alpha and audio, or lossless
-  16-bit grayscale PNG masks with timing metadata.
+- ProRes 4444 MOV, H.264 MP4, transparent/color PNG frames, and 16-bit PNG masks.
+- Transparent, green-screen, blue-screen, black, white, or custom-color backgrounds,
+  with a rendered-background preview before export.
+- Native, 720p, 1080p, 1440p/QHD, 2K/DCI, and 4K/UHD output sizes. Aspect ratio and
+  portrait orientation are preserved. Video quality and source audio are selectable.
 - Small preview frames, a bounded frame cache, and disk-spilled tracking tensors
   instead of loading whole 4K videos into RAM.
 - Automatic project snapshots; saved `.cutout` files reference original media.
@@ -184,12 +187,38 @@ python -m unittest discover -s scripts -p 'test_release.py' -v
 
 Changing a selection or model invalidates previous masks. Undo restores selections;
 retracking regenerates their masks. Cancellation retains completed masks and prompts.
-MOV/PNG exports never overwrite an existing destination; choose another name.
+Exports never overwrite an existing destination; choose another name.
 
 Source timing is normalized once using the detected nominal frame rate, or your
 choice in **Import options**. The same sampling is used for previews and exports;
-audio is trimmed to the selected normalized range. Export preserves displayed
-source dimensions and handles rotation. Only the first audio stream is included.
+audio is trimmed to the selected normalized range. Native export preserves displayed
+source dimensions and handles rotation. Other sizes fit the whole image within the
+selected preset without cropping; the panel shows the exact dimensions. Upscaling
+does not add detail. Only the first audio stream is included when audio is enabled.
+
+### Rendering options
+
+Choose **Render & Export** on the right. Rendering settings are saved with your
+project and reuse its existing masks, so exporting a second size or background
+does not require retracking.
+
+| Output | Use |
+| --- | --- |
+| Editing video · MOV | ProRes 4444 with straight alpha, or a solid background; optional PCM audio. |
+| Video · MP4 | H.264 with green, blue, black, white, or custom-color background; optional AAC audio. |
+| Image sequence · PNG | Lossless RGB/RGBA frames with timing metadata and no audio. |
+| Mask sequence · PNG | Lossless 16-bit grayscale masks with timing metadata and no audio. |
+
+**Native** keeps the original pixels. Presets fit within 1280 × 720, 1920 × 1080,
+2560 × 1440 (QHD), 2048 × 1080 (DCI 2K), or 3840 × 2160 (UHD 4K). Bounds rotate
+for portrait footage; square and other aspect ratios remain intact. For example,
+a 16:9 clip fits DCI 2K at 1920 × 1080; choose QHD for 2560 × 1440. MP4 requires
+even dimensions: use a preset or MOV/PNG for a source with odd native dimensions.
+
+Use **Preview background** to review the selected color. Green and blue screens
+are opaque backgrounds for later chroma keying; transparent MOV or PNG keeps alpha
+directly. High quality is the default for video; Maximum uses more space and
+Standard creates smaller files. PNG and mask sequences remain lossless.
 
 ## Project layout
 

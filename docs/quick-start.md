@@ -14,13 +14,39 @@ Open **Quick guide** in the app’s top bar for these steps, or choose
 4. Click **Track both ways**. Review the result; use **Space** to play/pause and
    **Left/Right** to step through frames. If tracking drifts, add Keep/Remove marks
    on that frame and track again. Changing marks clears the previous masks.
-5. Adjust Feather and Shrink/grow if needed. Choose an in/out range, track every
-   frame in it, then **Export cutout** for a transparent MOV or export PNG masks.
+5. Adjust Feather and Shrink/grow if needed. Choose an in/out range and track every
+   frame in it, then choose your output under **Render & Export**.
 
 In DaVinci Resolve, put the MOV above your new background. If needed, set
 Clip Attributes → Alpha Mode → Straight. Masked previews may play slowly;
 **Original** plays the video normally. Save a `.cutout` project to resume later,
 and keep your source video in its original location.
+
+## Choose a rendering style and resolution
+
+1. **Choose Export format.** MOV supports transparent ProRes 4444 for editors.
+   MP4 makes an H.264 video for playback and sharing. PNG image sequences keep
+   lossless frames; mask sequences export 16-bit grayscale masks.
+2. **Choose Background.** Use transparency with MOV or PNG, or select green screen,
+   blue screen, black, white, or a custom color. MP4 needs a solid background.
+   Click **Preview background** to see how the subject looks against it.
+3. **Choose Output resolution.** Native uses the original pixels. Other presets
+   are 720p, 1080p, 1440p/QHD, 2K/DCI, and 4K/Ultra HD. They keep the whole picture
+   and preserve its aspect ratio and portrait orientation. **Output size** shows
+   the exact width and height; selecting a larger size does not add detail.
+4. **Choose Render quality and audio.** High is the default. Maximum creates larger
+   video files; Standard creates smaller ones. Turn off **Include source audio**
+   for a silent video. PNG sequences include `timing.json` but no audio.
+5. **Export.** Choose a new filename, or a new folder name for a PNG sequence.
+   You can change render settings and export again without tracking again.
+
+QHD is 2560 × 1440; DCI 2K is a 2048 × 1080 bound. A 16:9 image fits that DCI
+bound at 1920 × 1080. UHD 4K is 3840 × 2160. MP4 needs even width and height;
+use a preset, or MOV/PNG, if your source has odd native dimensions.
+
+For clean edges in an editor, prefer a transparent MOV or PNG. Green/blue-screen
+exports are opaque and need chroma keying in the editor. Export always reads your
+original video, even though the preview and tracking use smaller frames.
 
 ## Why Windows is using the CPU
 

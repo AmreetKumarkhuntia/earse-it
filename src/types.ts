@@ -3,13 +3,20 @@ export type Box = [number, number, number, number];
 export type Prompt = { points: Point[]; box: Box | null };
 export type Prompts = Record<string, Prompt>;
 export type Edge = { feather: number; grow: number; invert: boolean };
-export type PreviewMode = 'overlay' | 'cutout' | 'mask' | 'original';
+export type PreviewMode = 'overlay' | 'cutout' | 'render' | 'mask' | 'original';
+export type RenderSettings = {
+  format: 'prores' | 'mp4' | 'png_sequence' | 'mask_sequence';
+  background: 'transparent' | 'green' | 'blue' | 'black' | 'white' | 'custom';
+  color: string; resolution: 'native' | '720p' | '1080p' | '1440p' | '2k' | '4k';
+  quality: 'standard' | 'high' | 'maximum'; audio: boolean;
+};
 export type Tool = 'keep' | 'remove' | 'box';
 export type Project = {
   schema_version: 1; id: string; name: string; source: string;
   media: { width: number; height: number; fps_num: number; fps_den: number; duration: number; frame_count: number; has_audio: boolean; normalized_timing: boolean };
   in_frame: number; out_frame: number; model: string; device: 'auto' | 'cpu' | 'cuda';
   edge: Edge; prompts: Prompts; revision: number; project_file: string | null;
+  render?: RenderSettings;
   tracked_ranges: [number, number][]; directory: string; proxy: string;
 };
 export type Model = { id: string; name: string; description: string; size: number; installed: boolean; license: string };

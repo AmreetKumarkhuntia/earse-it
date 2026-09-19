@@ -1,0 +1,7 @@
+.color-field { display: flex; align-items: center; gap: 12px; }
+.color-field input { width: 48px; height: 34px; padding: 3px; background: #242b22; border: 1px solid #526344; border-radius: 6px; cursor: pointer; }
+.color-field code { color: #bdcea8; font-size: 11px; }
+.render-note { color: #c4b88f; font-size: 10px; line-height: 1.6; margin: 10px 0; }
+.render-preview-button { margin: 0 0 3px; }
+.render-audio { margin-top: 18px; }
+.render-help { width: 100%; margin-top: 15px; }

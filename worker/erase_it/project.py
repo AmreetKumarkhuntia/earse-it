@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 
 from .errors import CutoutError
+from .rendering import validate_render
 
 
 def atomic_json(path: Path, data: dict):
@@ -100,6 +101,7 @@ class Project:
             "source": str(source), "source_size": stat.st_size, "source_mtime_ns": stat.st_mtime_ns,
             "media": media, "in_frame": 0, "out_frame": max(0, media["frame_count"] - 1),
             "model": "tiny", "device": "auto", "edge": {"feather": 1.0, "grow": 0, "invert": False},
+            "render": validate_render(),
             "prompts": {}, "revision": 0,
         })
 
@@ -123,6 +125,7 @@ class Project:
             integer(data["media"]["fps_den"], "Frame rate denominator", 1, 1_000_000)
             data["prompts"] = validate_prompts(data["prompts"], count)
             data["edge"] = validate_edge(data["edge"])
+            data["render"] = validate_render(data.get("render"))
             integer(data["in_frame"], "In frame", 0, count - 1)
             integer(data["out_frame"], "Out frame", data["in_frame"], count - 1)
             integer(data["revision"], "Revision", 0, 1_000_000)

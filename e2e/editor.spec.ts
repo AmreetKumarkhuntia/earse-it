@@ -22,6 +22,9 @@ test('browser preview explains local processing and exposes help', async ({ page
   await expect(page.getByRole('button', { name: 'Quick guide', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'GPU setup & troubleshooting' }).click();
   await expect(page.getByRole('heading', { name: 'Use your NVIDIA GPU' })).toBeVisible();
+  await page.getByRole('button', { name: 'Rendering', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('green screen');
+  await expect(page.getByRole('dialog')).toContainText('Native preserves the original pixels');
   await page.getByRole('button', { name: 'Close guide' }).click();
   await page.getByRole('button', { name: 'Dismiss message' }).click();
   await page.screenshot({ path: 'test-results/workspace.png', fullPage: true });
@@ -57,7 +60,7 @@ test('real CPU worker: import, select, track, correct, undo, save, export', asyn
     if (command === 'plugin:dialog|open') return source;
     if (command === 'plugin:dialog|save') {
       const options = args.options as { defaultPath?: string };
-      return options.defaultPath?.endsWith('.cutout') ? projectFile : output;
+      return options.defaultPath?.endsWith('.cutout') ? projectFile : path.join(directory, options.defaultPath ?? 'output');
     }
     throw new Error(`Unexpected native call: ${command}`);
   });
@@ -105,11 +108,28 @@ test('real CPU worker: import, select, track, correct, undo, save, export', asyn
     await expect(page.locator('.notice[role="status"]')).toContainText('Export saved');
     const bytes = await readFile(output);
     expect(bytes.length).toBeGreaterThan(1000);
+    await page.getByLabel('Export format', { exact: true }).selectOption('mp4');
+    await expect(page.getByRole('combobox', { name: 'Background', exact: true })).toHaveValue('green');
+    await page.getByLabel('Output resolution', { exact: true }).selectOption('720p');
+    await expect(page.locator('.export-details')).toContainText('1152 × 720');
+    await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Preview background', exact: true }).click();
+    await expect(page.locator('.frame-image')).toHaveAttribute('src', /-render-00000000\.png/);
+    await page.getByRole('combobox', { name: 'Render quality', exact: true }).selectOption('maximum');
+    await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Export video', exact: true }).click();
+    await expect(page.locator('.notice[role="status"]')).toContainText('subject-green-720p.mp4');
+    const rendered = JSON.parse(execFileSync(process.env.ERASE_IT_FFPROBE ?? 'ffprobe', ['-v', 'error', '-show_streams', '-of', 'json', path.join(directory, 'subject-green-720p.mp4')]).toString());
+    expect(rendered.streams[0]).toMatchObject({ codec_name: 'h264', width: 1152, height: 720, nb_frames: '3' });
+    const savedProject = JSON.parse(await readFile(projectFile, 'utf-8'));
+    expect(savedProject.render).toMatchObject({ format: 'mp4', background: 'green', resolution: '720p', quality: 'maximum' });
+    await page.locator('.right-panel').evaluate(element => { element.scrollTop = (element.querySelector('.export-section') as HTMLElement).offsetTop - element.offsetTop; });
+    await page.screenshot({ path: 'test-results/rendering.png', fullPage: true });
     await page.getByRole('button', { name: 'Next frame', exact: true }).click();
     await expect(page.locator('.frame-image')).toHaveAttribute('alt', /Frame 2/);
     await page.mouse.click(viewer.x + viewer.width * .5, viewer.y + viewer.height * .5);
     await expect(page.locator('.keyframes button')).toHaveCount(2);
-    await expect(page.getByRole('button', { name: 'Export cutout' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeDisabled();
     await page.getByTitle('Undo selection', { exact: true }).click();
     await expect(page.locator('.keyframes button')).toHaveCount(1);
   } finally {

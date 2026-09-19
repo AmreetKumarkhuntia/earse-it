@@ -29,13 +29,13 @@ Progress: `{"v":1,"event":"progress","job_id":"unique-id","stage":"Tracking subj
 | `open_project` | `path` | project summary |
 | `project_info` | none | current summary and completed mask ranges |
 | `save_project` | optional `path` | project summary |
-| `settings` | optional `model`, `device`, `edge`, `in_frame`, `out_frame` | project summary |
+| `settings` | optional `model`, `device`, `edge`, `render`, `in_frame`, `out_frame` | project summary |
 | `set_prompts` | complete `prompts` mapping, `frame`, optional `preview` | updated summary |
-| `frame` | `frame`, `mode` | app-owned image path and mask availability |
+| `frame` | `frame`, `mode`: overlay/cutout/render/mask/original | app-owned image path and mask availability |
 | `track` | selection `frame`, `direction`: both/forward/backward | completed summary |
 | `cancel` | `job_id` | whether an active job was cancelled |
 | `download_model` | `model`: tiny/base_plus | updated model list |
-| `export` | `path`, `format`: prores/mask_sequence | output path and frame count |
+| `export` | `path`, `format`: prores/mp4/png_sequence/mask_sequence, optional `options` | output path, frame count, width, height |
 
 Commands are serialized in the client. The worker rejects overlapping jobs and
 handles cancellation on its input thread while processing runs on a worker thread.
@@ -65,6 +65,23 @@ increase a revision and invalidate masks, preventing old results from being expo
 Completed mask files are published atomically. Exports are prepared under temporary
 names; a MOV is published with no replacement, and PNG destinations are reserved
 exclusively. Existing destinations are never overwritten.
+
+Rendering preferences are a validated `render` object: `format`, `background`
+(transparent/green/blue/black/white/custom), `color` (#RRGGBB), `resolution`
+(native/720p/1080p/1440p/2k/4k), `quality` (standard/high/maximum), and boolean
+`audio`. Missing preferences in old projects default to native transparent ProRes
+with high quality and audio. The optional export `options` object overrides saved
+preferences for that export. Rendering changes do not invalidate tracked masks.
+
+The render preview and export share background compositing and edge refinement.
+Preset dimensions fit the original aspect ratio, rotate bounds for portrait video,
+and round to even pixels. Native keeps exact dimensions; odd-sized native MP4 is
+rejected with guidance to use a preset or MOV/PNG. Frames are decoded from the
+original source and resized with Lanczos, then composed against the refined mask.
+Exports stream one frame at a time. MP4 uses the bundled OpenH264 encoder on
+Windows (x264 is also accepted for Linux development) and optional AAC audio.
+MOV retains ProRes 4444 and PCM audio. PNG sequences include rational timing and
+rendering metadata. Audio and video retain the project's normalized in/out range.
 
 The pinned upstream SAM 2 implementation has a broken optional memory-clear helper;
 it remains disabled. Every tracking direction begins from clean state with all saved

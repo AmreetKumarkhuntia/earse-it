@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image, ImageChops, ImageFilter
 
 from .errors import CutoutError
+from .rendering import composite, validate_render
 
 
 def save_image(image: Image.Image, path: Path):
@@ -34,13 +35,14 @@ def refine(mask: Image.Image, size: tuple[int, int], edge: dict, source_size: tu
 
 
 def render_frame(project, frame: int, mode: str) -> dict:
-    if mode not in ("overlay", "cutout", "mask", "original"):
+    if mode not in ("overlay", "cutout", "render", "mask", "original"):
         raise CutoutError("INVALID_INPUT", "Unknown preview mode.")
     base_path = project.frame_path(frame)
     has_mask = project.mask_path(frame).is_file()
     if mode == "original" or not has_mask:
         return {"path": str(base_path), "has_mask": has_mask, "frame": frame}
-    signature = hashlib.sha256(json.dumps(project.data["edge"], sort_keys=True).encode()).hexdigest()[:12]
+    settings = validate_render(project.data.get("render"))
+    signature = hashlib.sha256(json.dumps([project.data["edge"], settings], sort_keys=True).encode()).hexdigest()[:12]
     path = project.directory / "renders" / f"{project.data['revision']}-{signature}-{mode}-{frame:08d}.png"
     if not path.exists():
         with Image.open(base_path) as source, Image.open(project.mask_path(frame)) as mask:
@@ -52,6 +54,8 @@ def render_frame(project, frame: int, mode: str) -> dict:
                 image.putalpha(alpha)
             elif mode == "mask":
                 image = alpha
+            elif mode == "render":
+                image = alpha if settings["format"] == "mask_sequence" else composite(image, alpha, settings)
             else:
                 tint = Image.new("RGB", image.size, (182, 244, 112))
                 image = Image.composite(tint, image, alpha.point(lambda value: round(value * .45)))
