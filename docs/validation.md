@@ -10,13 +10,14 @@ The Windows workflow tests the worker, packages it with PyInstaller, verifies th
 the frozen runtime imports PyTorch/SAM 2, checks Rust formatting, and builds an NSIS
 installer. The optional NVIDIA runtime workflow builds the CUDA pack separately.
 
-Release tests verify that only a pushed `chore:` HEAD on `main` requests publishing,
-that earlier features/breaking changes determine the version bump, and that the
-generated `[skip ci]` commit cannot trigger a release loop. Temporary packaging
-fixtures check version consistency, source/notice coverage, installer selection,
-and SHA-256 checksums. A release is built after versioning, then semantic-release
-pushes the version commit and tag and uploads its assets. These local tests do not
-exercise GitHub authentication, repository rules, or installation on Windows.
+Release tests verify that only a pushed `feat`, `fix`, or breaking-change HEAD on
+`main` requests publishing, that earlier changes determine the version bump, and
+that the generated `[skip ci]` commit cannot trigger a release loop. Temporary
+packaging fixtures check version consistency, source/notice coverage, installer
+selection, and SHA-256 checksums. A release is built after versioning, then
+semantic-release pushes the version commit and tag and uploads its assets. These
+local tests do not exercise GitHub authentication, repository rules, or
+installation on Windows.
 
 During initial implementation, the Linux environment passed real SAM 2.1 Tiny CPU
 selection and bidirectional tracking, an actual 4K alpha export, frontend type/build
@@ -24,6 +25,16 @@ checks, the Rust host type check, and frozen-runtime construction of the Tiny mo
 The browser integration test uses the real worker while substituting only native
 dialogs/event transport; it covers import, selection, tracking, correction, undo,
 project save and transparent export. This is not a Windows UI or NVIDIA hardware test.
+
+The README screenshots come from that integration test's three-frame synthetic
+clip. To regenerate them on a configured machine with the Tiny model in
+`.cache/inference/models/`, run:
+
+```sh
+ERASE_IT_E2E=1 ERASE_IT_CAPTURE_README=1 npx playwright test -g 'real CPU worker'
+```
+
+This writes `docs/assets/demo-cutout.png` and `docs/assets/demo-green-screen.png`.
 
 Before calling a release production-ready, perform the following hardware/editor checks:
 

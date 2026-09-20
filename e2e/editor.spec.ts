@@ -102,6 +102,10 @@ test('real CPU worker: import, select, track, correct, undo, save, export', asyn
     await expect(page.locator('.frame-image')).toHaveAttribute('src', /-cutout-00000000\.png/);
     await expect(page.locator('.frame-image')).toHaveJSProperty('complete', true);
     await page.screenshot({ path: 'test-results/cutout.png', fullPage: true });
+    if (process.env.ERASE_IT_CAPTURE_README === '1') {
+      await mkdir('docs/assets', { recursive: true });
+      await page.screenshot({ path: 'docs/assets/demo-cutout.png', fullPage: true });
+    }
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.locator('.notice[role="status"]')).toContainText('Project saved');
     await page.getByRole('button', { name: 'Export cutout' }).click();
@@ -117,6 +121,10 @@ test('real CPU worker: import, select, track, correct, undo, save, export', asyn
     await expect(page.locator('.frame-image')).toHaveAttribute('src', /-render-00000000\.png/);
     await page.getByRole('combobox', { name: 'Render quality', exact: true }).selectOption('maximum');
     await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeEnabled();
+    if (process.env.ERASE_IT_CAPTURE_README === '1') {
+      await page.locator('.right-panel').evaluate(element => { element.scrollTop = (element.querySelector('.export-section') as HTMLElement).offsetTop - element.offsetTop; });
+      await page.screenshot({ path: 'docs/assets/demo-green-screen.png', fullPage: true });
+    }
     await page.getByRole('button', { name: 'Export video', exact: true }).click();
     await expect(page.locator('.notice[role="status"]')).toContainText('subject-green-720p.mp4');
     const rendered = JSON.parse(execFileSync(process.env.ERASE_IT_FFPROBE ?? 'ffprobe', ['-v', 'error', '-show_streams', '-of', 'json', path.join(directory, 'subject-green-720p.mp4')]).toString());
