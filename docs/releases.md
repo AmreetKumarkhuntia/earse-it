@@ -19,7 +19,8 @@ The workflow updates the npm, Tauri, Rust, and Python versions and the optional
 NVIDIA installer version, then packages and checks both frozen workers. It builds
 the Windows installer with pinned download hashes and tests an actual silent
 installation with NVIDIA support before publishing. It commits these versions and `CHANGELOG.md` as
-`docs(release): VERSION [skip ci]`, pushes that commit and `vVERSION`, and publishes
+`docs(release): VERSION [skip ci]` using semantic-release's default
+`@semantic-release-bot` identity, pushes that commit and `vVERSION`, and publishes
 the installer, NVIDIA data files, sources/notices ZIP, and checksums to GitHub Releases. Pull the
 generated commit before your next push. Release builds run serially; if `main`
 has advanced before semantic-release starts, it skips the stale run. Use another
